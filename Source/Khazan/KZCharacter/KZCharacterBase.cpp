@@ -55,7 +55,21 @@ AKZCharacterBase::AKZCharacterBase()
 		Weapon->SetupAttachment(GetMesh(), TEXT("Weapon_R"));
 	}
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DodgeMontageRef(
+		TEXT("/Game/Khazan_anim/JumpAndDodge/AM_Dodge.AM_Dodge")
+	);
+	if (DodgeMontageRef.Succeeded())
+	{
+		DodgeMontage = DodgeMontageRef.Object;
+	}
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> GuardMontageRef(
+		TEXT("/Game/Khazan_anim/Guard/AM_Guard.AM_Guard")
+	);
+	if (GuardMontageRef.Succeeded())
+	{
+		GuardMontage = GuardMontageRef.Object;
+	}
 
 }
 
@@ -237,3 +251,76 @@ void AKZCharacterBase::LaunchCharacterNotify(float LaunchForce)
 	//GetCharacterMovement()->MovementMode = EMovementMode::MOVE_None;
 }
 
+void AKZCharacterBase::PlayGuardMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		AnimInstance->Montage_Play(GuardMontage);
+		GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+		bIsGuarding = true;
+
+	}
+}
+
+void AKZCharacterBase::PlayDodgeMontage(FName Section)
+{
+	if (DodgeMontage && bIsDodge == false)
+	{
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		bIsDodge = true;
+		PlayAnimMontage(DodgeMontage, 1.0f, Section);
+		// 몽타주 종료 이벤트에 등록할 델리게이트 설정.
+		FOnMontageEnded OnMontageEnded;
+		OnMontageEnded.BindUObject(this, &AKZCharacterBase::DodgeMontageEnd);
+
+		// 몽타주 재생 종료 시 발행되는 이벤트에 등록.
+		AnimInstance->Montage_SetEndDelegate(OnMontageEnded, DodgeMontage);
+	}
+}
+
+void AKZCharacterBase::DodgeMontageEnd(UAnimMontage* TargetMontage, bool bInterrupted)
+{
+	bIsDodge = false;
+}
+
+FName AKZCharacterBase::DetermineDodgeSection(float Angle)
+{
+	if (Angle > -22.5f && Angle <= 22.5f)
+	{
+		return "Dodge_F";
+	}
+	else if (Angle > 22.5f && Angle <= 67.5f)
+	{
+		return "Dodge_FR";
+	}
+	else if (Angle > 67.5f && Angle <= 112.5f)
+	{
+		return "Dodge_R";
+	}
+	else if (Angle > 112.5f && Angle <= 157.5f)
+	{
+		return "Dodge_BR";
+	}
+	else if ((Angle > 157.5f && Angle <= 180.0f) || (Angle > -180.0f && Angle <= -157.5f))
+	{
+		return "Dodge_B";
+	}
+	else if (Angle > -157.5f && Angle <= -112.5f)
+	{
+		return "Dodge_BL";
+	}
+	else if (Angle > -112.5f && Angle <= -67.5f)
+	{
+		return "Dodge_L";
+	}
+	else if (Angle > -67.5f && Angle <= -22.5f)
+	{
+		return "Dodge_FL";
+	}
+	else
+	{
+		return "Dodge_B";
+	}
+
+}

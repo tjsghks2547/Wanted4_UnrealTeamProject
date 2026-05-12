@@ -88,7 +88,13 @@ protected:
 
 	// 가드
 protected:
-	
+	UPROPERTY(EditAnywhere, Category = Guard)
+	TObjectPtr<UAnimMontage> GuardMontage;
+
+	UPROPERTY(EditAnywhere, Category = Guard, BlueprintReadWrite)
+	bool bIsGuarding = false;
+
+	void PlayGuardMontage();
 
 	// 무기
 protected:
@@ -98,5 +104,16 @@ protected:
 	UPROPERTY(EditAnywhere, category = Weapon)
 	TObjectPtr<USkeletalMeshComponent> Weapon;
 
+	// 회피
+protected:
+	UPROPERTY(VisibleAnywhere, category = Dodge)
+	bool bIsDodge = false;
 
+	UPROPERTY(EditAnywhere, Category = Dodge)
+	UAnimMontage* DodgeMontage;
+
+	void PlayDodgeMontage(FName Section);
+	void DodgeMontageEnd(UAnimMontage* TargetMontage, bool bInterrupted);
+	UFUNCTION()
+	FName DetermineDodgeSection(float Angle);
 };
