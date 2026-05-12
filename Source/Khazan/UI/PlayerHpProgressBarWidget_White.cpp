@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "PlayerHpProgressBarWidget_White.h"
+#include "UI/PlayerHpProgressBarWidget_White.h"
 #include "Components/ProgressBar.h"
 
 

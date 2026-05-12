@@ -7,18 +7,18 @@
 #include "PlayerHpProgressBarWidget.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
 class KHAZAN_API UPlayerHpProgressBarWidget : public UUserWidget
 {
 	GENERATED_BODY()
-	
+
 public:
 	UPlayerHpProgressBarWidget(const FObjectInitializer& ObjectInitializer);
 
 protected:
-	virtual void NativeConstruct() override; 
+	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 public:
@@ -34,8 +34,8 @@ public:
 protected:
 	// Hp 게이지를 보여주기 위해 사용할 프로그래스 바
 	UPROPERTY()
-	TObjectPtr<class UProgressBar> m_pHpProgressBar;		
-	 
+	TObjectPtr<class UProgressBar> m_pHpProgressBar;
+
 
 	// 최대 체력 값 설정( 게이지 계산을 위해 )
 	UPROPERTY()

@@ -11,7 +11,7 @@ UStatComponent::UStatComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	m_iMaxHp = 0;
-	m_iCurrentHp = 0; 
+	m_iCurrentHp = 0;
 
 	// ...
 }
@@ -23,7 +23,7 @@ void UStatComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	
+
 }
 
 
@@ -33,15 +33,32 @@ void UStatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorC
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// ...
+
+	/* 스테미나 관련*/
+	m_fCurrentStamina = FMath::FInterpTo(m_fCurrentStamina, m_fMaxStamina, DeltaTime, 1.5f);
+
+
+
 }
 
 void UStatComponent::Apply_Damage(int32 _iDamageSize)
 {
 	m_iCurrentHp -= _iDamageSize;
 
-	if(m_iCurrentHp <= 0 )
+	if (m_iCurrentHp <= 0)
 	{
 		m_iCurrentHp = 0;
+	}
+
+}
+
+void UStatComponent::Apply_Stamina(float _fStaminaConsumption)
+{
+	m_fCurrentStamina -= _fStaminaConsumption;
+
+	if (m_fCurrentStamina <= 0)
+	{
+		m_fCurrentStamina = 0;
 	}
 
 }
