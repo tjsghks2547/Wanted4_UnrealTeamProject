@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "../Interface/KZAnimationAttackInterface.h"
+#include "../Interface/KZDamageInterface.h"
 #include "KZCharacterBase.generated.h"
 
 UENUM()
@@ -43,6 +44,9 @@ public:
 
 	virtual void AttackCheck() override;
 
+	void EnableWeaponCollision();
+	void DisableWeaponCollision();
+
 	// 공격
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attack)
@@ -56,6 +60,8 @@ protected:
 	void ProcessAttackCommand(EAttackType AttackType);
 
 	void WeakAttackBegin();
+
+	void ChargeWeakAttackBegin(bool bIsCharged);
 
 	void StrongAttackBegin();
 
@@ -85,6 +91,7 @@ protected:
 	// IKZAnimationAttackInterface을(를) 통해 상속됨
 	void LaunchCharacterNotify(float LaunchForce) override;
 
+	bool bIsCharging = false;
 
 	// 가드
 protected:
@@ -104,6 +111,23 @@ protected:
 	UPROPERTY(EditAnywhere, category = Weapon)
 	TObjectPtr<USkeletalMeshComponent> Weapon;
 
+	UPROPERTY(EditAnywhere, category = Weapon)
+	TObjectPtr<class UBoxComponent> WeaponCollision;
+
+
+
+	UFUNCTION()
+	void OnWeaponOverlap(
+		UPrimitiveComponent * OverlappedComponent,
+		AActor * OtherActor,
+		UPrimitiveComponent * OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep, const FHitResult & SweepResult);
+
+public:
+	UPROPERTY(EditAnywhere, Category = "HitActor")
+	TArray<AActor*> AlreadyHitActor;
+
 	// 회피
 protected:
 	UPROPERTY(VisibleAnywhere, category = Dodge)
@@ -116,4 +140,5 @@ protected:
 	void DodgeMontageEnd(UAnimMontage* TargetMontage, bool bInterrupted);
 	UFUNCTION()
 	FName DetermineDodgeSection(float Angle);
+
 };

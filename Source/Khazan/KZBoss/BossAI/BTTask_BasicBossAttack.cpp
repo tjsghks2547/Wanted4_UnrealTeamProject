@@ -5,6 +5,7 @@
 #include "../KZBossCharacter.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "KZMonster/KZMonsterCharacter.h"
 
 UBTTask_BasicBossAttack::UBTTask_BasicBossAttack()
 {
@@ -14,20 +15,31 @@ EBTNodeResult::Type UBTTask_BasicBossAttack::ExecuteTask(UBehaviorTreeComponent&
 {
 	CachedOwnerComp = &OwnerComp;
 	AAIController* AIController = OwnerComp.GetAIOwner();
-	AKZBossCharacter* BossCharacter = Cast<AKZBossCharacter>(AIController->GetPawn());
-	if (BossCharacter)
+	// AIê°€ ë¹™ì˜í•œ ì•¡í„°ë¥¼ KZMonsterCharacterë¡œ ìºìŠ¤íŒ…
+	AKZMonsterCharacter* Monster = Cast<AKZMonsterCharacter>(AIController->GetPawn());
+
+	//AKZBossCharacter* BossCharacter = Cast<AKZBossCharacter>(AIController->GetPawn());
+	UE_LOG(LogTemp, Warning, TEXT("%s"), *Monster->GetName());
+
+	if (Monster)
 	{
-		// °ø°İ ½ÇÇà Àü¿¡ ÀÌµ¿ Á¤Áö
+		// ëª½íƒ€ì£¼ ì‹¤í–‰ ì „ ì´ë™ ì¤‘ì§€
 		AIController->StopMovement();
 
-		// °ø°İ ¸ùÅ¸ÁÖ Àç»ı
-		BossCharacter->PlayAttackMontage();
+		// í”Œë ˆì´ì–´ íƒ€ê²Ÿ ì„¤ì • (StopMovement í›„ Focus)
+		AActor* TargetActor = Cast<AActor>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(FName("PlayerPos")));
+		if (TargetActor)
+		{
+			AIController->SetFocus(TargetActor);
+		}
 
-		// °ø°İ»óÅÂ°¡ µÇ¾úÀ½À» BB¿¡ ¾Ë¸²
+		// ëª½íƒ€ì£¼ ì‹¤í–‰
+		Monster->PlayAttackMontage();
+
+		// ê³µê²© ì¤‘ì„ì„ ë¸”ë™ë³´ë“œì— ì €ì¥
 		OwnerComp.GetBlackboardComponent()->SetValueAsBool(FName("isAttacking"), true);
 
-		// ¾Ö´Ï¸ŞÀÌ¼Ç Á¾·á ´ë±â ¸ğµå·Î ÁøÀÔ.
-		return EBTNodeResult::InProgress;
+		return EBTNodeResult::Succeeded;
 	}
 
 	return EBTNodeResult::Failed;

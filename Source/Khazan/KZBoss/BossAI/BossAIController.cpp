@@ -5,11 +5,11 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "../KZBossCharacter.h"
-#include "Kismet/GameplayStatics.h" // ÇÃ·¹ÀÌ¾î ÆùÀ» °¡Á®¿À±â À§ÇÔ
+#include "Kismet/GameplayStatics.h" // ï¿½Ã·ï¿½ï¿½Ì¾ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 
 ABossAIController::ABossAIController()
 {
-	// ºí·¢º¸µå ÄÄÆ÷³ÍÆ® »ı¼º
+	// ë¸”ë™ë³´ë“œ ì»´í¬ë„ŒíŠ¸ ìƒì„±
 	BlackboardComp = CreateDefaultSubobject<UBlackboardComponent>(TEXT("BlackboardComp"));
 }
 
@@ -21,20 +21,20 @@ void ABossAIController::OnPossess(APawn* InPawn)
 	{
 		if (UseBlackboard(BTBoss->BlackboardAsset, BlackboardComp))
 		{
-			// °Å¸®°ª ÃÊ±âÈ­ (½ÇÇà ½Ã ÀÚµ¿À¸·Î 0À¸·Î ÃÊ±âÈ­µÇ´Â °Í ¹æÁö)
+			// ë¸”ë™ë³´ë“œ ê±°ë¦¬ ë³€ìˆ˜ ì´ˆê¸°í™” (ì²˜ìŒ 0ìœ¼ë¡œ ì‹œì‘í•˜ì—¬ ê³µê²©í•˜ê³  ì‹œì‘í•¨ì„ ë°©ì§€)
 			BlackboardComp->SetValueAsFloat(FName("Distance"), 9999.0f);
 
-			// BT ½ÇÇà
+			// BT ì‹¤í–‰
 			RunBehaviorTree(BTBoss);
 
 			AKZBossCharacter* Viper = Cast<AKZBossCharacter>(InPawn);
 			if (Viper)
 			{
-				// º¸½ºÀÇ ÇöÀç ÆäÀÌÁî¸¦ ºí·¢º¸µå¿¡ ÀúÀå(°»½Å)
+				// ë³´ìŠ¤ì˜ í˜„ì¬ í˜ì´ì¦ˆë¥¼ ë¸”ë™ë³´ë“œì— ì €ì¥
 				BlackboardComp->SetValueAsEnum(FName("CurrentPhase"), (uint8)Viper->CurrentPhase);
 			}
 
-			// ÇÃ·¹ÀÌ¾î Å¸°Ù ¼³Á¤ Àç½Ãµµ ÇÔ¼ö
+			// í”Œë ˆì´ì–´ íƒ€ê²Ÿ ì„¤ì • ì‹œë„
 			RetrySetTarget();
 
 		}
@@ -49,10 +49,11 @@ void ABossAIController::RetrySetTarget()
 	if (PlayerPawn)
 	{
 		BlackboardComp->SetValueAsObject(FName("PlayerPos"), PlayerPawn);
+		SetFocus(PlayerPawn);
 	}
 	else
 	{
-		// ÇÃ·¹ÀÌ¾î¸¦ ¸ø Ã£¾Ò´Ù¸é 0.2ÃÊ µÚ¿¡ ´Ù½Ã ½Ãµµ
+		// í”Œë ˆì´ì–´ë¥¼ ëª» ì°¾ì•˜ì„ ê²½ìš° 0.2ì´ˆ í›„ì— ë‹¤ì‹œ ì‹œë„
 		FTimerHandle TimerHandle;
 		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &ABossAIController::RetrySetTarget, 0.2f, false);
 

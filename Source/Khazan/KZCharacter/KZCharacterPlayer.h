@@ -8,6 +8,7 @@
 #include "KZCharacterBase.h"
 #include "../Interface/IInteractableTarget.h"
 #include "Interface/PlayerUiWidget_Interface.h"
+#include "../Interface/KZDamageInterface.h"
 #include "KZCharacterPlayer.generated.h"
 
 // 전방선언.
@@ -17,7 +18,8 @@ UCLASS()
 class KHAZAN_API AKZCharacterPlayer : 
 	public AKZCharacterBase,
 	public IIInteractableTarget,
-	public IPlayerUiWidget_Interface /* 5_11 선환 추가 ( UI Widget과 Player 의존성 없애기 위해 인터페이스 구현 ) */
+	public IPlayerUiWidget_Interface, /* 5_11 선환 추가 ( UI Widget과 Player 의존성 없애기 위해 인터페이스 구현 ) */
+	public IKZDamageInterface
 {
 	GENERATED_BODY()
 
@@ -112,7 +114,17 @@ protected:
 	void StopGuard(const FInputActionValue& value);
 	void UiTest();
 
+	// 차징 공격
+protected:
+	void WeakAttackTriggered(const FInputActionValue& value);
+	void WeakAttackCompleted(const FInputActionValue& value);
+	
+	float CurrentChargeTime = 0.0f;
+	
+	const float ChargeThreshold = 0.2f;
 
-
-
+	// 충돌판정
+protected:
+	// 데미지를 받으면 이 함수가 실행됨.
+	void ProcessDamage(const FDamageData& DamageData) override;
 };

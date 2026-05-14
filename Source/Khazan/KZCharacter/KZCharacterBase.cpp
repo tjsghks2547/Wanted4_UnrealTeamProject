@@ -4,6 +4,8 @@
 #include "KZCharacterBase.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/BoxComponent.h"
+#include "../Collision/KZCollision.h"
 
 // Sets default values
 AKZCharacterBase::AKZCharacterBase()
@@ -42,6 +44,7 @@ AKZCharacterBase::AKZCharacterBase()
 	Weapon = CreateDefaultSubobject<USkeletalMeshComponent>(
 		TEXT("Weapon")
 	);
+	WeaponCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("WeaponCollision"));
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> WeaponMeshRef(
 		TEXT("/Game/Khazan/Weapon/Khazan_GS_Weapon.Khazan_GS_Weapon")
@@ -50,9 +53,20 @@ AKZCharacterBase::AKZCharacterBase()
 	{
 		WeaponMesh = WeaponMeshRef.Object;
 
+		WeaponCollision->SetupAttachment(Weapon);
+
+		WeaponCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		WeaponCollision->SetCollisionObjectType(ECC_WorldDynamic);
+		WeaponCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
+		WeaponCollision->SetCollisionResponseToChannel(C_CHANNEL_MONSTER, ECR_Overlap);
+
+		WeaponCollision->OnComponentBeginOverlap.AddDynamic(this, &AKZCharacterBase::OnWeaponOverlap);
 
 		Weapon->SetSkeletalMesh(WeaponMesh.Get());
 		Weapon->SetupAttachment(GetMesh(), TEXT("Weapon_R"));
+
+
 	}
 
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DodgeMontageRef(
@@ -127,9 +141,19 @@ void AKZCharacterBase::AttackCheck()
 			if (CurrentCombo < MaxCombo && NextAttackType == EAttackType::Weak)
 			{
 				CurrentCombo++;
-				FName NextSection = *FString::Printf(TEXT("WeakAtk0%d"), CurrentCombo);
+				FName NextSection;
+				// 차징 상태에 따라 일반약공격 혹은 차지공격으로 전환.
+				if (bIsCharging)
+				{
+					NextSection = *FString::Printf(TEXT("ChargeWait0%d"), CurrentCombo);
+				}
+				else
+				{
+					NextSection = *FString::Printf(TEXT("WeakAtk0%d"), CurrentCombo);
+				}
 				AnimInstance->Montage_JumpToSection(NextSection, WeakAttackMontage);
 			}
+			// 다음 공격 예약이 강공격인 경우.
 			else if (NextAttackType == EAttackType::Strong)
 			{
 				CurrentAttackType = EAttackType::Strong;
@@ -142,6 +166,7 @@ void AKZCharacterBase::AttackCheck()
 	}
 }
 
+// 약 or 강공격 시작 함수.
 void AKZCharacterBase::ProcessAttackCommand(EAttackType AttackType)
 {
 	// 약공격과 강공격의 입력을 받아서 현재 입력 혹은 다음 입력의 타입을 설정.
@@ -174,10 +199,12 @@ void AKZCharacterBase::WeakAttackBegin()
 	
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (AnimInstance)
+	if (AnimInstance && !AnimInstance->Montage_IsPlaying(WeakAttackMontage))
 	{
 		// 몽타주 재생.
 		AnimInstance->Montage_Play(WeakAttackMontage);
+		FName JumpSection = *FString::Printf(TEXT("ChargeWait0%d"), CurrentCombo);
+		AnimInstance->Montage_JumpToSection(JumpSection, WeakAttackMontage);
 
 		// 몽타주 종료 이벤트에 등록할 델리게이트 설정.
 		FOnMontageEnded OnMontageEnded;
@@ -190,6 +217,35 @@ void AKZCharacterBase::WeakAttackBegin()
 		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 	}
 
+}
+
+// 차지어택 시작 함수.
+void AKZCharacterBase::ChargeWeakAttackBegin(bool bIsCharged)
+{
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && WeakAttackMontage)
+	{
+		// 현재 섹션의 이름을 가져와서 Wait 혹은 Hold인 상황을 확인.
+		// 약공격 몽타주는 Wait -> Hold(loop)를 하게 되어있음.
+		FName CurrentSection = AnimInstance->Montage_GetCurrentSection(WeakAttackMontage);
+		int32 ComboNum = CurrentCombo;
+
+		if (CurrentSection.ToString().Contains(TEXT("Wait")) || CurrentSection.ToString().Contains(TEXT("Hold")))
+		{
+			FName JumpSection;
+			if (bIsCharged)
+			{
+				JumpSection = *FString::Printf(TEXT("ChargeWeakAtk0%d"), ComboNum);
+			}
+			else
+			{
+				JumpSection = *FString::Printf(TEXT("WeakAtk0%d"), ComboNum);
+			}
+			AnimInstance->Montage_JumpToSection(JumpSection, WeakAttackMontage);
+		}
+
+	}
 }
 
 // 강공격 시작.
@@ -215,6 +271,7 @@ void AKZCharacterBase::StrongAttackBegin()
 	}
 }
 
+// 공격 종료 후에 실행되는 함수,
 void AKZCharacterBase::AttackActionEnd(UAnimMontage* TargetMontage, bool bInterrupted)
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -232,6 +289,7 @@ void AKZCharacterBase::AttackActionEnd(UAnimMontage* TargetMontage, bool bInterr
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 }
 
+// 공격이 끝났는지 확인하는 함수.
 void AKZCharacterBase::AttackEndCheck()
 {
 
@@ -251,6 +309,7 @@ void AKZCharacterBase::LaunchCharacterNotify(float LaunchForce)
 	//GetCharacterMovement()->MovementMode = EMovementMode::MOVE_None;
 }
 
+// 가드 몽타주 실행 함수.
 void AKZCharacterBase::PlayGuardMontage()
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -263,6 +322,48 @@ void AKZCharacterBase::PlayGuardMontage()
 	}
 }
 
+//  공격 했을 때만 무기의 콜리전 켜기 / 끄기
+void AKZCharacterBase::EnableWeaponCollision()
+{
+	WeaponCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+}
+
+void AKZCharacterBase::DisableWeaponCollision()
+{
+	WeaponCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+// 무기와 상대가 충돌했을 경우에 실행되는 함수.
+void AKZCharacterBase::OnWeaponOverlap(
+	UPrimitiveComponent* OverlappedComponent,
+	AActor* OtherActor, UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex,
+	bool bFromSweep, const FHitResult& SweepResult)
+{
+	// 하나의 대상에게 중복 처리를 방지하기 위해 배열을 이용.
+	if (AlreadyHitActor.Contains(OtherActor))
+	{
+		return;
+	}
+
+	// 이미 배열에 있는 대상이라면 리턴, 없으면 배열에 추가.
+	AlreadyHitActor.Add(OtherActor);
+
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("공격 성공!"));
+
+	// 인터페이스를 이용해 무기의 데미지 데이터와 공격한 사람의 정보만 던져줌.
+	IKZDamageInterface* DamagebleTarget = Cast<IKZDamageInterface>(OtherActor);
+	if (DamagebleTarget)
+	{
+		FDamageData Data;
+		Data.DamageAmount = 50.0f;
+		Data.Attacker = this;
+
+		DamagebleTarget->ProcessDamage(Data);
+	}
+}
+
+// 회피 몽타주 실행 함수.
 void AKZCharacterBase::PlayDodgeMontage(FName Section)
 {
 	if (DodgeMontage && bIsDodge == false)
@@ -284,6 +385,7 @@ void AKZCharacterBase::DodgeMontageEnd(UAnimMontage* TargetMontage, bool bInterr
 	bIsDodge = false;
 }
 
+// 회피 방향을 반환하는 함수.
 FName AKZCharacterBase::DetermineDodgeSection(float Angle)
 {
 	if (Angle > -22.5f && Angle <= 22.5f)
@@ -324,3 +426,5 @@ FName AKZCharacterBase::DetermineDodgeSection(float Angle)
 	}
 
 }
+
+
