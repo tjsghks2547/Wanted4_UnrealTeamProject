@@ -1,9 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "AIController.h"
+#include "EBossPhase.h"
 #include "BossAIController.generated.h"
 
 /**
@@ -19,6 +20,20 @@ public:
 
 protected:
 
-	// º¸½º°¡ ½ºÆùµÇ¾î ÀÌ ÄÁÆ®·Ñ·¯°¡ ºùÀÇÇßÀ» ¶§ ½ÇÇà
-	
+	// ë³´ìŠ¤ê°€ ìŠ¤í°ë˜ì–´ ì´ ì»¨íŠ¸ë¡¤ëŸ¬ê°€ ë¹™ì˜í–ˆì„ ë•Œ ì‹¤í–‰
+	virtual void OnPossess(APawn* InPawn) override;
+
+	void RetrySetTarget();
+
+	void UpdatePhase(EBossPhase NewPhase);
+
+public:
+
+	// ì—ë””í„°ì—ì„œ ë“œë˜ê·¸ ì•¤ ë“œë¡­ìœ¼ë¡œ í• ë‹¹í•  ë¹„í—¤ì´ë¹„ì–´ íŠ¸ë¦¬ ì• ì…‹
+	UPROPERTY(EditAnywhere, Category = "AI")
+	class UBehaviorTree* BTBoss;
+
+	// ë¸”ë™ë³´ë“œ ì»´í¬ë„ŒíŠ¸ (ìƒì„±ìì—ì„œ ì´ˆê¸°í™”)
+	UPROPERTY()
+	class UBlackboardComponent* BlackboardComp;
 };
