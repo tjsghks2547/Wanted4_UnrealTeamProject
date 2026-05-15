@@ -15,8 +15,20 @@ struct FDamageData
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameData)
 	float DamageAmount;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameData)
+
 	AActor* Attacker;
+	
+	EHitIntensity Intensity;
+	EAttackSwingDir SwingDir;
 	//EAttackType AttackType;
 	//FVector HitLocation;
 };
+
+UENUM(BlueprintType)
+enum class EAttackSwingDir : uint8 {U, D, L ,R};
+
+UENUM(BlueprintType)
+enum class EHitIntensity : uint8 {Weak, Strong, Normal};
