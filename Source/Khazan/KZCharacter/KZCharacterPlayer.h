@@ -52,6 +52,10 @@ public:
 	virtual FName GetTargetType() const override { return FName("Player"); }
 	virtual bool IsAttackable() const override { return true; }
 
+	virtual void SetStaminaRegenBlock(bool bBlocked) override;
+	virtual void ApplyStaminaTest(float value) override;
+	virtual bool HasEnoughStamina(float value) override;
+
 protected:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	TObjectPtr<class USpringArmComponent> SpringArm;
@@ -62,6 +66,12 @@ protected:
 	// 5_11 선환 추가
 	UPROPERTY(VisibleAnywhere, Category = Stat)
 	TObjectPtr<class UStatComponent> m_pStatComponent; 
+
+	UPROPERTY(EditAnywhere, Category = Stat)
+	float SprintStaminaConsumptionRate = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = State)
+	bool bIsSprint = false;
 
 	// 입력 액션
 protected:
@@ -126,5 +136,20 @@ protected:
 	// 충돌판정
 protected:
 	// 데미지를 받으면 이 함수가 실행됨.
+	UFUNCTION(BlueprintCallable)
 	void ProcessDamage(const FDamageData& DamageData) override;
+
+	void Dead();
+
+	// 죽음 이벤트를 위한 플래그
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = State)
+	bool bIsDead = false;
+
+	FString GetAttackerPosString(AActor* Attacker);
+
+	FString GetSwingDirString();
+
+	FString GetIntensityString(float DamageAmout);
+
+	void HitMontageEnd(UAnimMontage* TargetMontage, bool bInterrupted);
 };

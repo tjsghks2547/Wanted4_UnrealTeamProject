@@ -37,6 +37,10 @@ public:
 	void Apply_Damage(int32 _iDamageSize);
 	void Apply_Stamina(float _fStaminaConsumption);
 
+	// 액션 도중에 스태미너 회복을 막아야해서 플래그 추가 - 현석.
+	UPROPERTY(EditAnywhere, Category = Stat)
+	bool bIsStaminaRegenBlocked = false;
+
 public:
 	// hp 변동 관련 업데이트 
 	FORCEINLINE void Update_Stat_Hp(int32 _iCurrentHp)

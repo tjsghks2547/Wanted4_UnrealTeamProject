@@ -35,10 +35,11 @@ void UStatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorC
 	// ...
 
 	/* 스테미나 관련*/
-	m_fCurrentStamina = FMath::FInterpTo(m_fCurrentStamina, m_fMaxStamina, DeltaTime, 1.5f);
-
-
-
+	// 플레이어가 회피,달리기, 공격 도중에 스테미너 자동 회복 막음 - 현
+	if (bIsStaminaRegenBlocked == false) 
+	{
+		m_fCurrentStamina = FMath::FInterpTo(m_fCurrentStamina, m_fMaxStamina, DeltaTime, 1.5f);
+	}
 }
 
 void UStatComponent::Apply_Damage(int32 _iDamageSize)

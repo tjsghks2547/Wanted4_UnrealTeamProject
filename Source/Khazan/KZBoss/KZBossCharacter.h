@@ -5,11 +5,10 @@
 #include "CoreMinimal.h"
 #include "../KZMonster/KZMonsterCharacter.h"
 #include "BossAI/EBossPhase.h"
-#include "../Interface/KZDamageInterface.h"
 #include "KZBossCharacter.generated.h"
 
 UCLASS()
-class KHAZAN_API AKZBossCharacter : public AKZMonsterCharacter, public IKZDamageInterface
+class KHAZAN_API AKZBossCharacter : public AKZMonsterCharacter//, public IKZDamageInterface
 {
 	GENERATED_BODY()
 
@@ -62,11 +61,12 @@ public:
 	// 재생할 몽타주를 저장하는 변수
 	UPROPERTY(BlueprintReadOnly, Category ="Combat")
 	UAnimMontage* CurrentMontage;
-
+	
 protected:
-	UPROPERTY(VisibleAnywhere, Category = Stat)
-	TObjectPtr<class UStatComponent> m_pStatComponent;
+	//UPROPERTY(VisibleAnywhere, Category = Stat)
+	//TObjectPtr<class UStatComponent> m_pStatComponent;
 
 	// IKZDamageInterface을(를) 통해 상속됨
+	UFUNCTION(BlueprintCallable)
 	void ProcessDamage(const FDamageData& DamageData) override;
 };

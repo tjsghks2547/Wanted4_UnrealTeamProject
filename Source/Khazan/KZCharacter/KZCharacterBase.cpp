@@ -85,6 +85,14 @@ AKZCharacterBase::AKZCharacterBase()
 		GuardMontage = GuardMontageRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> HitMontageRef(
+		TEXT("/Game/Khazan_anim/Dead_JG_Dam/AM_Hit.AM_Hit")
+	);
+	if (HitMontageRef.Succeeded())
+	{
+		HitMontage = HitMontageRef.Object;
+	}
+
 }
 
 // Called when the game starts or when spawned
@@ -137,6 +145,13 @@ void AKZCharacterBase::AttackCheck()
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (AnimInstance)
 		{
+			float RequiredStamina = (NextAttackType == EAttackType::Strong) ? 30.0f : 20.0f;
+			if (!HasEnoughStamina(RequiredStamina))
+			{
+				bNextCombo = false;
+				return;
+			}
+
 			CurrentAttackType = NextAttackType;
 			if (CurrentCombo < MaxCombo && NextAttackType == EAttackType::Weak)
 			{
@@ -149,6 +164,7 @@ void AKZCharacterBase::AttackCheck()
 				}
 				else
 				{
+					ApplyStaminaTest(20.0f);
 					NextSection = *FString::Printf(TEXT("WeakAtk0%d"), CurrentCombo);
 				}
 				AnimInstance->Montage_JumpToSection(NextSection, WeakAttackMontage);
@@ -169,9 +185,19 @@ void AKZCharacterBase::AttackCheck()
 // 약 or 강공격 시작 함수.
 void AKZCharacterBase::ProcessAttackCommand(EAttackType AttackType)
 {
+	float RequiredStamina = (AttackType == EAttackType::Strong) ? 30.0f : 20.0f;
 	// 약공격과 강공격의 입력을 받아서 현재 입력 혹은 다음 입력의 타입을 설정.
 	if (CurrentAttackType == EAttackType::None)
 	{
+		if (HasEnoughStamina(RequiredStamina) == false)
+		{
+			SetStaminaRegenBlock(false);
+
+			return;
+
+		}
+
+
 		CurrentAttackType = AttackType;
 		if (CurrentCombo == 0 && AttackType == EAttackType::Weak)
 		{
@@ -201,6 +227,7 @@ void AKZCharacterBase::WeakAttackBegin()
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && !AnimInstance->Montage_IsPlaying(WeakAttackMontage))
 	{
+
 		// 몽타주 재생.
 		AnimInstance->Montage_Play(WeakAttackMontage);
 		FName JumpSection = *FString::Printf(TEXT("ChargeWait0%d"), CurrentCombo);
@@ -236,11 +263,15 @@ void AKZCharacterBase::ChargeWeakAttackBegin(bool bIsCharged)
 			FName JumpSection;
 			if (bIsCharged)
 			{
+				ApplyStaminaTest(30.0f);
 				JumpSection = *FString::Printf(TEXT("ChargeWeakAtk0%d"), ComboNum);
+				
 			}
 			else
 			{
+				ApplyStaminaTest(20.0f);
 				JumpSection = *FString::Printf(TEXT("WeakAtk0%d"), ComboNum);
+
 			}
 			AnimInstance->Montage_JumpToSection(JumpSection, WeakAttackMontage);
 		}
@@ -256,7 +287,9 @@ void AKZCharacterBase::StrongAttackBegin()
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance)
 	{
+		
 		// 몽타주 재생.
+		ApplyStaminaTest(30.0f);
 		AnimInstance->Montage_Play(StrongAttackMontage);
 
 		// 몽타주 종료 이벤트에 등록할 델리게이트 설정.
@@ -280,13 +313,15 @@ void AKZCharacterBase::AttackActionEnd(UAnimMontage* TargetMontage, bool bInterr
 	{
 		return;
 	}
-
+	
 	CurrentCombo = 0;
 	bNextCombo = false;
 	CurrentAttackType = EAttackType::None;
 	NextAttackType = EAttackType::None;
 	// 이동 모드 복구.
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+
+	SetStaminaRegenBlock(false);
 }
 
 // 공격이 끝났는지 확인하는 함수.
@@ -304,8 +339,24 @@ void AKZCharacterBase::LaunchCharacterNotify(float LaunchForce)
 	{
 		GetCharacterMovement()->MovementMode = EMovementMode::MOVE_Flying;
 	} 
-	FVector Forward = GetActorForwardVector();
-	LaunchCharacter(Forward * LaunchForce, true, false);
+
+	if (LastAttacker)
+	{
+		FVector LaunchDir = GetActorLocation() - LastAttacker->GetActorLocation();
+
+		LaunchDir.Z = 0.0f;
+		LaunchDir.Normalize();
+
+
+
+		LaunchCharacter((LaunchDir * LaunchForce * 3) + FVector(0.0f,0.0f,30.0f), true, false);
+	}
+	else
+	{
+		FVector Forward = GetActorForwardVector();
+		LaunchCharacter(-1 * Forward * LaunchForce, true, false);
+	}
+
 	//GetCharacterMovement()->MovementMode = EMovementMode::MOVE_None;
 }
 

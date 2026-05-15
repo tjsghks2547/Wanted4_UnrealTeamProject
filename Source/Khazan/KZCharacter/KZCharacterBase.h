@@ -44,6 +44,10 @@ public:
 
 	virtual void AttackCheck() override;
 
+	virtual void SetStaminaRegenBlock(bool bBlocked) {};
+	virtual void ApplyStaminaTest(float value) {};
+	virtual bool HasEnoughStamina(float value) { return true;  }
+
 	void EnableWeaponCollision();
 	void DisableWeaponCollision();
 
@@ -140,5 +144,13 @@ protected:
 	void DodgeMontageEnd(UAnimMontage* TargetMontage, bool bInterrupted);
 	UFUNCTION()
 	FName DetermineDodgeSection(float Angle);
+
+	// 피격
+protected:
+	UPROPERTY(EditAnywhere, Category = Hit)
+	UAnimMontage* HitMontage;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hit)
+	TObjectPtr<AActor> LastAttacker;
 
 };
