@@ -6,23 +6,17 @@
 #include "Animation/AnimInstance.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "../Component/StatComponent.h"
 
 // Sets default values
 AKZMonsterCharacter::AKZMonsterCharacter()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	// 폰 센싱 컴포넌트 생성 및 초기화
-	PawnSensing = CreateDefaultSubobject<UPawnSensingComponent>(TEXT("PawnSensing"));
 
-	// 기본 시야 설정
-	if (PawnSensing)
-	{
-		PawnSensing->SensingInterval = 0.25f; // 감지 주기
-		PawnSensing->SightRadius = 50.0f;    // 감지 거리
-		PawnSensing->SetPeripheralVisionAngle(90.0f); // 시야각 (절반 각도, 총 180도)
-	}
+	m_pStatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
+	m_pStatComponent->SetUp_stat_Hp(100, 100);
 
 }
 
@@ -31,11 +25,13 @@ void AKZMonsterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// 시야 감지 컴포넌트 초기화
-	if (PawnSensing)
+	// 부모 수준에서 한 번만 캐싱
+	AIC = Cast<AAIController>(GetController());
+	if (AIC)
 	{
-		PawnSensing->OnSeePawn.AddDynamic(this, &AKZMonsterCharacter::OnSeePawn);
+		BlackboardComp = AIC->GetBlackboardComponent();
 	}
+
 }
 
 // Called every frame
@@ -53,16 +49,16 @@ void AKZMonsterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 }
-
-void AKZMonsterCharacter::OnSeePawn(APawn* SeenPawn)
-{
-	// 플레이어 캐릭터인지 확인 (유효하고 플레이어 컨트롤러에 의해 제어되는지 확인)
-	if (SeenPawn && SeenPawn->IsPlayerControlled())
-	{
-		TargetPawn = SeenPawn;
-		//UE_LOG(LogTemp, Log, TEXT("Monster spotted player: %s"), *SeenPawn->GetName());
-	}
-}
+//
+//void AKZMonsterCharacter::OnSeePawn(APawn* SeenPawn)
+//{
+//	// 플레이어 캐릭터인지 확인 (유효하고 플레이어 컨트롤러에 의해 제어되는지 확인)
+//	if (SeenPawn && SeenPawn->IsPlayerControlled())
+//	{
+//		TargetPawn = SeenPawn;
+//		//UE_LOG(LogTemp, Log, TEXT("Monster spotted player: %s"), *SeenPawn->GetName());
+//	}
+//}
 
 void AKZMonsterCharacter::PlayAttackMontage()
 {
@@ -84,23 +80,78 @@ void AKZMonsterCharacter::PlayAttackMontage()
 
 
 
+
 			// 몽타주가 끝났을 때 람다함수 바인딩
 			FOnMontageEnded EndDelegate;
 			EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
 				{
-
-					AAIController* AIC = Cast<AAIController>(GetController());
-
-					// 
-					if (AIC && AIC->GetBlackboardComponent())
+					if (AIC && BlackboardComp)
 					{
-						AIC->GetBlackboardComponent()->SetValueAsBool(FName("isAttacking"), false);
+						BlackboardComp->SetValueAsBool(FName("IsAttacking"), false);
+						AIC->ClearFocus(EAIFocusPriority::Gameplay);
 					}
-
 				});
 
 			// 몽타주가 끝났을 때, 호출될 델리게이트 설정
 			AnimInstance->Montage_SetEndDelegate(EndDelegate, BasicAttackMontage);
 		}
+	}
+}
+
+void AKZMonsterCharacter::PlayAttackMontage_Internal(UAnimMontage* MontageToPlay, FName SectionName)
+{
+	if (!MontageToPlay) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		AnimInstance->Montage_Play(MontageToPlay);
+		if (!SectionName.IsNone())
+		{
+			AnimInstance->Montage_JumpToSection(SectionName, MontageToPlay);
+		}
+
+		// 공통 종료 처리 (부모가 딱 한 번만 정의)
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
+			{
+
+				if (BlackboardComp)
+				{
+					BlackboardComp->SetValueAsBool(FName("IsAttacking"), false);
+				}
+				if (AIC)
+				{
+					AIC->ClearFocus(EAIFocusPriority::Gameplay);
+				}
+			});
+
+		AnimInstance->Montage_SetEndDelegate(EndDelegate, MontageToPlay);
+	}
+}
+
+
+void AKZMonsterCharacter::ProcessDamage(const FDamageData& DamageData)
+{
+	if (m_pStatComponent)
+	{
+		m_pStatComponent->Apply_Damage(DamageData.DamageAmount);
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Damage"));
+	}
+
+	// 복귀 중 피격 시 재타겟 설정.
+	if (AIC && BlackboardComp)
+	{
+
+		if (BlackboardComp->GetValueAsBool(FName("IsReturning")))
+		{
+			BlackboardComp->SetValueAsBool(FName("IsReturning"), false); // 복귀 중단
+		}
+
+		//if (DamageData.Instigator)
+		//{
+		//	BlackboardComp->SetValueAsObject(FName("PlayerPos"), DamageData.Instigator);
+		//	BlackboardComp->SetValueAsBool(Fname("IsReturning"), false); // 복귀 중단
+			//}
 	}
 }
