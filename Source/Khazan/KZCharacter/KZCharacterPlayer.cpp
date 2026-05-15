@@ -140,7 +140,7 @@ void AKZCharacterPlayer::SetupPlayerUiWidget(UPlayerUIWidget* _InPlayerUiWidget)
 {
 	// 설정할 플레이어의 체력 및 최대 체력
 
-	m_pStatComponent->SetUp_stat_Hp(100, 100);
+	m_pStatComponent->SetUp_stat_Hp(1000, 1000);
 	m_pStatComponent->SetUp_stat_Stamina(100, 100);
 
 	if (_InPlayerUiWidget)
@@ -523,9 +523,10 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 {
 	if (bIsDead) { return; }
 
+	LastAttacker = DamageData.Attacker;
 	//float FinalDamage = DamageData.DamageAmount;
 
-	FString IntensityStr = GetIntensityString(DamageData.DamageAmount);//GetAttackerPosString(DamageData.Attacker, DamageData.Intensity);
+	FString IntensityStr = GetIntensityString(DamageData.DamageAmount);
 	FString SwingStr = GetSwingDirString();
 	FString PosStr = (IntensityStr == "Strong") ? TEXT("F") : GetAttackerPosString(DamageData.Attacker);
 
@@ -544,7 +545,8 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 
 		if (HitMontage)
 		{
-			GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+			GetCharacterMovement()->StopMovementImmediately();
+			//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 			PlayAnimMontage(HitMontage, 1.0f, SectionName);
 
 			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();

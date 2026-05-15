@@ -41,7 +41,8 @@ void ABossAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Sti
 		APawn* SensedPawn = Cast<APawn>(Actor);
 		if (SensedPawn && SensedPawn->IsPlayerControlled())
 		{
-			if ((BlackboardComp = GetBlackboardComponent()))
+			BlackboardComp = GetBlackboardComponent();
+			if (BlackboardComp)
 			{
 				BlackboardComp->SetValueAsObject(FName("PlayerPos"), Actor);
 			}

@@ -339,8 +339,24 @@ void AKZCharacterBase::LaunchCharacterNotify(float LaunchForce)
 	{
 		GetCharacterMovement()->MovementMode = EMovementMode::MOVE_Flying;
 	} 
-	FVector Forward = GetActorForwardVector();
-	LaunchCharacter(-1 * Forward * LaunchForce, true, false);
+
+	if (LastAttacker)
+	{
+		FVector LaunchDir = GetActorLocation() - LastAttacker->GetActorLocation();
+
+		LaunchDir.Z = 0.0f;
+		LaunchDir.Normalize();
+
+
+
+		LaunchCharacter((LaunchDir * LaunchForce * 3) + FVector(0.0f,0.0f,30.0f), true, false);
+	}
+	else
+	{
+		FVector Forward = GetActorForwardVector();
+		LaunchCharacter(-1 * Forward * LaunchForce, true, false);
+	}
+
 	//GetCharacterMovement()->MovementMode = EMovementMode::MOVE_None;
 }
 

@@ -150,4 +150,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Hit)
 	UAnimMontage* HitMontage;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hit)
+	TObjectPtr<AActor> LastAttacker;
+
 };
