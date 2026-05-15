@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "../KZMonster/KZMonsterCharacter.h"
 #include "BossAI/EBossPhase.h"
+#include "../Interface/KZDamageInterface.h"
 #include "KZBossCharacter.generated.h"
 
 UCLASS()
@@ -61,7 +62,7 @@ public:
 	// 재생할 몽타주를 저장하는 변수
 	UPROPERTY(BlueprintReadOnly, Category ="Combat")
 	UAnimMontage* CurrentMontage;
-	
+
 protected:
 	UPROPERTY(VisibleAnywhere, Category = Stat)
 	TObjectPtr<class UStatComponent> m_pStatComponent;

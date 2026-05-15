@@ -2,29 +2,28 @@
 
 
 #include "KZBossCharacter.h"
-#include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "AIController.h"
 #include "Navigation/PathFollowingComponent.h"
-
 #include "../Component/StatComponent.h"
 
 // Sets default values
 AKZBossCharacter::AKZBossCharacter()
-	// BackStepAttack 이동, 현재 페이즈 관련 변수 초기화
+	// BackStepAttack 이동, 상승 힘의 기본값 초기화
 	: Distance(500.0f), UpForce(500.0f), CurrentPhase(EBossPhase::Phase1A)
 {
-	// 부모 클래스(AKZMonsterCharacter)에서 PawnSensing이 생성됨
+	// 부모 클래스(AKZMonsterCharacter)에서 PawnSensing을 생성함
 	
 	PrimaryActorTick.bCanEverTick = true;
 	CurrentMovementSpeed = 0.0f;
 
 	
-	m_pStatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
+	//m_pStatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
 	m_pStatComponent->SetUp_stat_Hp(100, 100);
 
 	// AI 회전 및 이동 설정
-	bUseControllerRotationYaw = false;
+	bUseControllerRotationYaw = true;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->bUseControllerDesiredRotation = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 600.f, 0.f);
@@ -38,7 +37,6 @@ AKZBossCharacter::AKZBossCharacter()
 void AKZBossCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
@@ -46,8 +44,8 @@ void AKZBossCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// 현재 속도를 계산하여 저장 (애니메이션 블루프린트에서 참조됨)
-	CurrentMovementSpeed = GetVelocity().Size();
+	// 현재 속도를 계산하여 저장 (애니메이션 블루프린트에서 사용됨)
+	//CurrentMovementSpeed = GetVelocity().Size();
 
 }
 
@@ -60,59 +58,71 @@ void AKZBossCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void AKZBossCharacter::PlayAttackMontage()
 {
-	Super::PlayAttackMontage();
+	// 1. 유효성 검사 (안전한 프로그래밍)
+	if (!BasicAttackMontage || !BackStepAttackMontage) return;
 
-	if (BasicAttackMontage && BackStepAttackMontage)
+	// 2. 보스만의 고유 로직: 확률에 따른 공격 선택
+	int32 RandomIdx = FMath::RandRange(1, 4);
+
+	UAnimMontage* SelectedMontage = nullptr;
+	FName SectionName = NAME_None;
+
+	if (RandomIdx == 4)
 	{
-		
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance)
-		{
-			// 현재는 간단하게 랜덤으로 공격 애니메이션 선택.
-			int32 RandomIdx = FMath::RandRange(1, 4);
-
-			FName SectionName = FName(*FString::Printf(TEXT("Batk%d"), RandomIdx));
-
-			UAnimMontage* MontageToPlay = (RandomIdx == 4) ? BackStepAttackMontage : BasicAttackMontage;
-	
-			AnimInstance->Montage_Play(MontageToPlay);
-
-			if (RandomIdx != 4)
-			{
-				AnimInstance->Montage_JumpToSection(SectionName, MontageToPlay);
-			}
-
-
-
-			// 몽타주가 끝났을 때 실행될 함수(람다) 연결
-			FOnMontageEnded EndDelegate;
-			EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
-				{
-	
-					AAIController* AIC = Cast<AAIController>(GetController());
-
-					// 공격이 끝났을 때 BB의 isAttacking 값을 false로 설정하여 공격 상태 종료
-					if (AIC && AIC->GetBlackboardComponent())
-					{
-						AIC->GetBlackboardComponent()->SetValueAsBool(FName("isAttacking"), false);
-					}
-
-				});
-
-			// 몽타주가 끝났을 때, 호출될 델리게이트 설정
-			AnimInstance->Montage_SetEndDelegate(EndDelegate,MontageToPlay);
-		}
+		// 백스텝 공격 선택
+		SelectedMontage = BackStepAttackMontage;
+		// 백스텝은 섹션 점프가 필요 없으므로 NAME_None 유지
 	}
+	else
+	{
+		// 일반 공격(1~3) 선택
+		SelectedMontage = BasicAttackMontage;
+		SectionName = FName(*FString::Printf(TEXT("Batk%d"), RandomIdx));
+	}
+
+	// 3. 부모가 정의한 공통 로직 호출 (델리게이트 설정 및 재생을 부모에게 위임)
+	// 이 함수 안에서 BlackboardComp->SetValueAsBool(FName("IsAttacking"), false); 가 처리됩니다.
+	PlayAttackMontage_Internal(SelectedMontage, SectionName);
+	//if (BasicAttackMontage && BackStepAttackMontage)
+	//{
+	//	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	//	if (AnimInstance)
+	//	{
+	//		// 확률에 따라 공격 또는 백스텝 공격 선택 (1~3: 기본, 4: 백스텝)
+	//		int32 RandomIdx = FMath::RandRange(1, 4);
+	//		UAnimMontage* MontageToPlay = (RandomIdx == 4) ? BackStepAttackMontage : BasicAttackMontage;
+	//
+	//		AnimInstance->Montage_Play(MontageToPlay);
+
+	//		if (RandomIdx != 4)
+	//		{
+	//			FName SectionName = FName(*FString::Printf(TEXT("Batk%d"), RandomIdx));
+	//			AnimInstance->Montage_JumpToSection(SectionName, MontageToPlay);
+	//		}
+
+			//// 몽타주 종료 시 블랙보드 상태 업데이트를 위한 델리게이트 설정
+			//FOnMontageEnded EndDelegate;
+			//EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
+			//	{
+			//		if (BlackboardComp)
+			//		{
+			//			// 'IsAttacking' 키를 false로 설정하여 다음 동작이 가능하게 함
+			//			BlackboardComp->SetValueAsBool(FName("IsAttacking"), false);
+			//		}
+			//	});
+
+			//AnimInstance->Montage_SetEndDelegate(EndDelegate, MontageToPlay);
+		//}
+	//}
 }
 
 void AKZBossCharacter::ExecuteBackStep()
 {
-	AAIController* AIC = Cast<AAIController>(GetController());
 	if (AIC)
 	{
 		if (AIC->GetPathFollowingComponent())
 		{
-			// 이동 중이던 경로 추적을 중단하여 백스텝 공격이 원활하게 실행되도록 함
+			// 이동 가이드는 현재 진행중인 이동을 중단하여 백스텝 동작이 원활하게 수행되도록 함
 			AIC->GetPathFollowingComponent()->AbortMove(*AIC, FPathFollowingResultFlags::MovementStop);
 		}
 	}
@@ -120,18 +130,25 @@ void AKZBossCharacter::ExecuteBackStep()
 	GetCharacterMovement()->SetMovementMode(MOVE_Falling);
 	FVector BackDir = -GetActorForwardVector();
 	FVector LaunchVelocity = 0.66 * (BackDir * Distance + FVector(0, 0, UpForce));
-	UE_LOG(LogTemp, Warning, TEXT("BackStep Execute! Vector: %s"), *LaunchVelocity.ToString());
+	//UE_LOG(LogTemp, Warning, TEXT("BackStep Execute! Vector: %s"), *LaunchVelocity.ToString());
 	LaunchCharacter(LaunchVelocity, true, true);
 }
-// 인터페이스 구현한 부분 - 현석
-// 데미지를 받았을 때 보스 몬스터의 방어력같은 것을 고려한다면, 여기서 데미지 계산을 해주면 됨.
+
 void AKZBossCharacter::ProcessDamage(const FDamageData& DamageData)
 {
-	if (m_pStatComponent)
+	Super::ProcessDamage(DamageData);
+
+	if (AIC && BlackboardComp)
 	{
-		m_pStatComponent->Apply_Damage(DamageData.DamageAmount);
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Damage"));
+		// 복귀 중인데 공격을 받으면
+		if (BlackboardComp->GetValueAsBool(FName("IsReturning")))
+		{
+			// 데미지를 준 가해자를 다시 타겟으로 설정하고 복귀 중단
+			if (DamageData.Attacker)
+			{
+				BlackboardComp->SetValueAsObject(FName("PlayerPos"), DamageData.Attacker);
+				BlackboardComp->SetValueAsBool(FName("IsReturning"), false);
+			}
+		}
 	}
-
 }
-
