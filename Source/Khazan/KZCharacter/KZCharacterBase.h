@@ -145,7 +145,8 @@ protected:
 	UFUNCTION()
 	FName DetermineDodgeSection(float Angle);
 
-	// 피격
+
+// 피격
 protected:
 	UPROPERTY(EditAnywhere, Category = Hit)
 	UAnimMontage* HitMontage;

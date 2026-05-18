@@ -400,7 +400,7 @@ void AKZCharacterBase::OnWeaponOverlap(
 	// 이미 배열에 있는 대상이라면 리턴, 없으면 배열에 추가.
 	AlreadyHitActor.Add(OtherActor);
 
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("공격 성공!"));
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("공격 성공!"));
 
 	// 인터페이스를 이용해 무기의 데미지 데이터와 공격한 사람의 정보만 던져줌.
 	IKZDamageInterface* DamagebleTarget = Cast<IKZDamageInterface>(OtherActor);

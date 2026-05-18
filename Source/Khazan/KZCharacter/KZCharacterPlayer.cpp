@@ -521,7 +521,7 @@ void AKZCharacterPlayer::StopGuard(const FInputActionValue& value)
 // 데미지를 받은 입장.
 void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 {
-	if (bIsDead) { return; }
+	if (bIsDead || bIsInvincible) { return; }
 
 	LastAttacker = DamageData.Attacker;
 	//float FinalDamage = DamageData.DamageAmount;
@@ -550,7 +550,7 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 			PlayAnimMontage(HitMontage, 1.0f, SectionName);
 
 			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-			if (AnimInstance)
+			if (AnimInstance && !AnimInstance->Montage_IsPlaying(HitMontage))
 			{
 				// 몽타주 종료 이벤트에 등록할 델리게이트 설정.
 				FOnMontageEnded OnMontageEnded;

@@ -152,4 +152,14 @@ protected:
 	FString GetIntensityString(float DamageAmout);
 
 	void HitMontageEnd(UAnimMontage* TargetMontage, bool bInterrupted);
+
+	// 회피 시 무적을 위한 Set
+public:
+	FORCEINLINE void SetInvincible(bool IsInvincible) { bIsInvincible = IsInvincible; }
+	FORCEINLINE bool IsInvincible() const { return bIsInvincible; }
+
+protected:
+	UPROPERTY(EditAnywhere, Category = Dodge)
+	bool bIsInvincible = false;
+
 };
