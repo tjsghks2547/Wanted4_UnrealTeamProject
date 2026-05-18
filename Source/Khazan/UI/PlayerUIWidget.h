@@ -6,6 +6,8 @@
 #include "Blueprint/UserWidget.h"
 #include "PlayerUIWidget.generated.h"
 
+enum class EInterActionType : uint8;
+
 /**
  *
  */
@@ -34,33 +36,31 @@ public:
 	/* ----------------- */
 
 
+	/* 대화 UI 관련 */
+	void Set_DialogRenderOnOff(EInterActionType _eInterActionType, ESlateVisibility _eSlateVisibility);
+	void F_KeyStateUpdate(float _InIncreaseAmount);
+	void Set_F_KeyState(float _InPercent);
+
 
 protected:
 #pragma region Hp 관련 UI 
-	TObjectPtr<class UPlayerHpProgressBarWidget> m_pWidgetHpProgressBar;
-	TObjectPtr<class UPlayerHpProgressBarWidget_White> m_pWidgetHpWhiteProgressBar;
-	TObjectPtr<class UTextBlock> m_pCurrentHpText;
-	TObjectPtr<class UTextBlock> m_pMaxHpText;
+	TObjectPtr<class UPlayerHpProgressBarWidget> WidgetHpProgressBar;
+	TObjectPtr<class UPlayerHpProgressBarWidget_White> WidgetHpWhiteProgressBar;
+	TObjectPtr<class UTextBlock> CurrentHpText;
+	TObjectPtr<class UTextBlock> MaxHpText;
 #pragma endregion 
 
 #pragma region Stamina 관련 UI
-	TObjectPtr<class UPlayerStaminaProgressBarWidget> m_pWidgetStaminProgressBar;
-	TObjectPtr<class UTextBlock> m_pCurrentStaminaText;
+	TObjectPtr<class UPlayerStaminaProgressBarWidget> WidgetStaminaProgressBar;
 #pragma endregion 
 
 
-#pragma region UI Animation 관련
-	/* BindWidgetAnim (Blueprint 애니메이션과 자동 연결 )*/
-	/* Transient 직렬화 제외, 런타임에만 유효한 포인터임을 명시*/
-	UPROPERTY(Transient, meta = (BindWidgetAnim))
-	TObjectPtr<class UWidgetAnimation> Render_Opacity_StaminaProgressBar;
-
-	UPROPERTY(Transient, meta = (BindWidgetAnim))
-	TObjectPtr<class UWidgetAnimation> Render_Opactiy_StaminaText;
-
-	UPROPERTY()
-	bool m_bHasPlayedStaminaRenderOpacity = false;
-
+#pragma region InterAction UI
+	TObjectPtr<class UPlayerInterActionDialogWidget> PlayerInterActionDialogWidget;
+	TObjectPtr<class UInterActionKey_F_ProgressBarUI> InterActionKeyFWidget; 
 #pragma endregion 
+
+
+
 
 };

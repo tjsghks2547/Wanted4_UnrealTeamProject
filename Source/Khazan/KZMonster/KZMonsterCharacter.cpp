@@ -15,8 +15,8 @@ AKZMonsterCharacter::AKZMonsterCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 
-	m_pStatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
-	m_pStatComponent->SetUp_stat_Hp(100, 100);
+	StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
+	StatComponent->SetUp_stat_Hp(100, 100);
 
 }
 
@@ -133,9 +133,9 @@ void AKZMonsterCharacter::PlayAttackMontage_Internal(UAnimMontage* MontageToPlay
 
 void AKZMonsterCharacter::ProcessDamage(const FDamageData& DamageData)
 {
-	if (m_pStatComponent)
+	if (StatComponent)
 	{
-		m_pStatComponent->Apply_Damage(DamageData.DamageAmount);
+		StatComponent->Apply_Damage(DamageData.DamageAmount);
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Damage"));
 	}
 

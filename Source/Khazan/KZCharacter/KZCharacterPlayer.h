@@ -14,6 +14,12 @@
 // 전방선언.
 class UInputAction;
 
+/* 5_18 선환 추가 */
+enum class EInterActionType : uint8;
+enum class EInterAction_Key_Type : uint8;
+
+
+
 UCLASS()
 class KHAZAN_API AKZCharacterPlayer : 
 	public AKZCharacterBase,
@@ -65,7 +71,11 @@ protected:
 
 	// 5_11 선환 추가
 	UPROPERTY(VisibleAnywhere, Category = Stat)
-	TObjectPtr<class UStatComponent> m_pStatComponent; 
+	TObjectPtr<class UStatComponent> StatComponent;
+
+	// 5_18 선환 추가 
+	UPROPERTY(VisibleAnywhere, Category = UI)
+	TObjectPtr<class UUi_InterAction_Component> UiComponent; 
 
 	UPROPERTY(EditAnywhere, Category = Stat)
 	float SprintStaminaConsumptionRate = 5.0f;
@@ -152,4 +162,31 @@ protected:
 	FString GetIntensityString(float DamageAmout);
 
 	void HitMontageEnd(UAnimMontage* TargetMontage, bool bInterrupted);
+
+
+
+/* 5_18 선환 추가 ( Ui Dialog Rendering 관련 )  */
+public:
+	FORCEINLINE void Set_Current_OverlapTypes(EInterActionType _Tag)
+	{
+		InterActionType = _Tag;
+	};
+	void Set_Finish_Ui_Key_InterAction(bool _InbKeyFinished)
+	{
+		HasUiKeyFinished = _InbKeyFinished;
+	};
+
+	// 박스와 충돌할때 발생시키는 함수 
+	void Render_InterActionUi(EInterActionType _Tag, ESlateVisibility _eSlateVisibility);	
+	void Ui_Key_State_Reset();
+
+	bool Get_Ui_Key_Statue() { return HasUiKeyFinished; }
+
+protected:
+	UPROPERTY(VisibleAnywhere, Category = OverlapType, BlueprintReadOnly)
+	EInterActionType InterActionType;
+
+	UPROPERTY(VisibleAnywhere)	
+	bool HasUiKeyFinished;
+/* ---------------------------------------------------- */
 };
