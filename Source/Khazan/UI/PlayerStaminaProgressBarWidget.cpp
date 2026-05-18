@@ -14,27 +14,45 @@ void UPlayerStaminaProgressBarWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	m_pStaminaProgressBar = Cast<UProgressBar>(GetWidgetFromName(TEXT("ProgressBar_Stamina")));
+	StaminaProgressBar = Cast<UProgressBar>(GetWidgetFromName(TEXT("ProgressBar_Stamina")));
 
-	if(m_pStaminaProgressBar == NULL)
+	if(StaminaProgressBar == NULL)
 	{
 		UE_LOG(LogTemp, Error, TEXT("StaminaProgressBar를 찾지 못했습니다."));
 	}
 
+	CurrentStaminaText = Cast<UTextBlock>(GetWidgetFromName(TEXT("Current_Stamina_Text")));
+
+	if(CurrentStaminaText == NULL)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Current Stamina Text를 찾지 못했습니다."));
+	}
+
+
 }
 
-void UPlayerStaminaProgressBarWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
-{
-	
-}
 
 void UPlayerStaminaProgressBarWidget::UpdateProgressBar(float _fCurrentStamina, float _fMaxStamina)	
 {
+	int DisPlayText = _fCurrentStamina; 
 
-	m_fCurrentStamina = _fCurrentStamina;
-	m_fMaxStamina = _fMaxStamina;
+	CurrentStamina = _fCurrentStamina;
+	MaxStamina = _fMaxStamina;
 	
 	
-	m_pStaminaProgressBar->SetPercent(m_fCurrentStamina / m_fMaxStamina);
+	StaminaProgressBar->SetPercent(CurrentStamina / MaxStamina);
+	CurrentStaminaText->SetText(FText::AsNumber(DisPlayText));
+}
 
+void UPlayerStaminaProgressBarWidget::PlayUiAnimation()
+{
+	PlayAnimation(Render_Opacity_StaminaProgressBar);
+	PlayAnimation(Render_Opactiy_StaminaText);
+
+}
+
+void UPlayerStaminaProgressBarWidget::ResetRenderOpacity()
+{
+	StaminaProgressBar->SetRenderOpacity(1.0f);
+	CurrentStaminaText->SetRenderOpacity(1.0f);
 }

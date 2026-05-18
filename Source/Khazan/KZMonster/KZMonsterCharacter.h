@@ -50,7 +50,7 @@ protected:
 	float CurrentMovementSpeed;
 
 	UPROPERTY(VisibleAnywhere, Category = Stat)
-	TObjectPtr<class UStatComponent> m_pStatComponent;
+	TObjectPtr<class UStatComponent> StatComponent;
 
 	// IKZDamageInterface을(를) 통해 상속됨
 	void ProcessDamage(const FDamageData& DamageData) override;

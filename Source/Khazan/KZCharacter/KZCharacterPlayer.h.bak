@@ -8,16 +8,24 @@
 #include "KZCharacterBase.h"
 #include "../Interface/IInteractableTarget.h"
 #include "Interface/PlayerUiWidget_Interface.h"
+#include "../Interface/KZDamageInterface.h"
 #include "KZCharacterPlayer.generated.h"
 
 // 전방선언.
 class UInputAction;
 
+/* 5_18 선환 추가 */
+enum class EInterActionType : uint8;
+enum class EInterAction_Key_Type : uint8;
+
+
+
 UCLASS()
 class KHAZAN_API AKZCharacterPlayer : 
 	public AKZCharacterBase,
 	public IIInteractableTarget,
-	public IPlayerUiWidget_Interface /* 5_11 선환 추가 ( UI Widget과 Player 의존성 없애기 위해 인터페이스 구현 ) */
+	public IPlayerUiWidget_Interface, /* 5_11 선환 추가 ( UI Widget과 Player 의존성 없애기 위해 인터페이스 구현 ) */
+	public IKZDamageInterface
 {
 	GENERATED_BODY()
 
@@ -50,6 +58,10 @@ public:
 	virtual FName GetTargetType() const override { return FName("Player"); }
 	virtual bool IsAttackable() const override { return true; }
 
+	virtual void SetStaminaRegenBlock(bool bBlocked) override;
+	virtual void ApplyStaminaTest(float value) override;
+	virtual bool HasEnoughStamina(float value) override;
+
 protected:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	TObjectPtr<class USpringArmComponent> SpringArm;
@@ -59,7 +71,17 @@ protected:
 
 	// 5_11 선환 추가
 	UPROPERTY(VisibleAnywhere, Category = Stat)
-	TObjectPtr<class UStatComponent> m_pStatComponent; 
+	TObjectPtr<class UStatComponent> StatComponent;
+
+	// 5_18 선환 추가 
+	UPROPERTY(VisibleAnywhere, Category = UI)
+	TObjectPtr<class UUi_InterAction_Component> UiComponent; 
+
+	UPROPERTY(EditAnywhere, Category = Stat)
+	float SprintStaminaConsumptionRate = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = State)
+	bool bIsSprint = false;
 
 	// 입력 액션
 protected:
@@ -79,6 +101,9 @@ protected:
 	TObjectPtr<class UInputAction> JumpAction;
 
 	UPROPERTY(EditAnywhere, Category = Input, BlueprintReadOnly)
+	TObjectPtr<class UInputAction> DodgeAction;
+
+	UPROPERTY(EditAnywhere, Category = Input, BlueprintReadOnly)
 	TObjectPtr<class UInputAction> AttackAction;
 
 	UPROPERTY(EditAnywhere, Category = Input, BlueprintReadOnly)
@@ -90,20 +115,103 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Input, BlueprintReadOnly)
 	TObjectPtr<class UInputAction> StrongAttackAction;
 
+	UPROPERTY(EditAnywhere, Category = Input, BlueprintReadOnly)
+	TObjectPtr<class UInputAction> GuardAction;
+
 	// 5_11 선환 ( Ui Test를 위해 임시 추가 ) 
 	UPROPERTY(EditAnywhere, Category = Input, BlueprintReadOnly)
 	TObjectPtr<class UInputAction> UiTestAction;
+
+	
 
 
 	void Move(const FInputActionValue& value);
 	void Sprint(const FInputActionValue& value);
 	void StopSprint(const FInputActionValue& value);
 	void Look(const FInputActionValue& value);
+	void Dodge(const FInputActionValue& value);
 	void WeakAttack(const FInputActionValue& value);
 	void StrongAttack(const FInputActionValue& value);
+	void Guard(const FInputActionValue& value);
+	void StopGuard(const FInputActionValue& value);
 	void UiTest();
 
+	// 점프
+public:
+	virtual void Jump() override;
+	virtual void Landed(const FHitResult& Hit) override;
+
+	void ExcutePhysicsJump();
 
 
+	// 차징 공격
+protected:
+	void WeakAttackTriggered(const FInputActionValue& value);
+	void WeakAttackCompleted(const FInputActionValue& value);
+	
+	float CurrentChargeTime = 0.0f;
+	
+	const float ChargeThreshold = 0.2f;
 
+	// 충돌판정
+protected:
+	// 데미지를 받으면 이 함수가 실행됨.
+	UFUNCTION(BlueprintCallable)
+	void ProcessDamage(const FDamageData& DamageData) override;
+
+	void Dead();
+
+	// 죽음 이벤트를 위한 플래그
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = State)
+	bool bIsDead = false;
+
+	FString GetAttackerPosString(AActor* Attacker);
+
+	FString GetSwingDirString();
+
+	FString GetIntensityString(float DamageAmout);
+
+	void HitMontageEnd(UAnimMontage* TargetMontage, bool bInterrupted);
+
+/* 5_18 선환 추가 ( Ui Dialog Rendering 관련 )  */
+public:
+	FORCEINLINE void Set_Current_OverlapTypes(EInterActionType _Tag)
+	{
+		InterActionType = _Tag;
+	};
+	void Set_Finish_Ui_Key_InterAction(bool _InbKeyFinished)
+	{
+		HasUiKeyFinished = _InbKeyFinished;
+	};
+
+	// 박스와 충돌할때 발생시키는 함수 
+	void Render_InterActionUi(EInterActionType _Tag, ESlateVisibility _eSlateVisibility);	
+	void Ui_Key_State_Reset();
+
+	bool Get_Ui_Key_Statue() { return HasUiKeyFinished; }
+
+protected:
+	UPROPERTY(VisibleAnywhere, Category = OverlapType, BlueprintReadOnly)
+	EInterActionType InterActionType;
+
+	UPROPERTY(VisibleAnywhere)	
+	bool HasUiKeyFinished;
+/* ---------------------------------------------------- */
+
+
+	// 회피 시 무적을 위한 Set
+public:
+	FORCEINLINE void SetInvincible(bool IsInvincible) { bIsInvincible = IsInvincible; }
+	FORCEINLINE bool IsInvincible() const { return bIsInvincible; }
+
+protected:
+	UPROPERTY(EditAnywhere, Category = Dodge)
+	bool bIsInvincible = false;
+
+	// 저스트 가드
+protected:
+	float GuardStartTime = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = Guard)
+	float JustGuardWindow = 0.2f;
 };

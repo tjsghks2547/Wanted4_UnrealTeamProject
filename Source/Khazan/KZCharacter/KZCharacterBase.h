@@ -145,7 +145,8 @@ protected:
 	UFUNCTION()
 	FName DetermineDodgeSection(float Angle);
 
-	// 피격
+
+// 피격
 protected:
 	UPROPERTY(EditAnywhere, Category = Hit)
 	UAnimMontage* HitMontage;
@@ -153,4 +154,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hit)
 	TObjectPtr<AActor> LastAttacker;
 
+
+	// 점프
+protected:
+	UPROPERTY(EditAnywhere, Category = Jump)
+	UAnimMontage* JumpMontage;
 };

@@ -9,7 +9,9 @@
 #include "EnhancedInputComponent.h"
 #pragma region 선환 헤더 추가 
 #include "Component/StatComponent.h"
+#include "Component/Ui_InterAction_Component.h"
 #include "UI/PlayerUIWidget.h"
+#include "Types/InterActionType.h"
 #pragma endregion 
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -39,10 +41,13 @@ AKZCharacterPlayer::AKZCharacterPlayer()
 	Camera->SetupAttachment(SpringArm);
 
 
-	/* 5_11 선환 추가 Actor Component */
+	/* 5_18 선환 추가 Actor Component */
 	
 	// Actor Component
-	m_pStatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
+	StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
+	UiComponent = CreateDefaultSubobject<UUi_InterAction_Component>(TEXT("UiComponent"));
+	// Scene Component
+
 
 	/* -----------------------------------  */
 
@@ -140,23 +145,29 @@ void AKZCharacterPlayer::SetupPlayerUiWidget(UPlayerUIWidget* _InPlayerUiWidget)
 {
 	// 설정할 플레이어의 체력 및 최대 체력
 
-	m_pStatComponent->SetUp_stat_Hp(1000, 1000);
-	m_pStatComponent->SetUp_stat_Stamina(100, 100);
+	StatComponent->SetUp_stat_Hp(1000, 1000);
+	StatComponent->SetUp_stat_Stamina(100, 100);
 
 	if (_InPlayerUiWidget)
 	{
 		// 초기값 초기화
-		_InPlayerUiWidget->SetUp_Ui_Hp(m_pStatComponent->GetCurrentHp(), m_pStatComponent->GetMaxHp());
-		_InPlayerUiWidget->SetUp_Ui_Stamina(m_pStatComponent->GetCurrentStamina(), m_pStatComponent->GetMaxStamina());
+		_InPlayerUiWidget->SetUp_Ui_Hp(StatComponent->GetCurrentHp(), StatComponent->GetMaxHp());
+		_InPlayerUiWidget->SetUp_Ui_Stamina(StatComponent->GetCurrentStamina(), StatComponent->GetMaxStamina());
 
 		// Ui widget의 default 값 초기화 하기.
 		// Hp 관련 델리게이트 이벤트
-		m_pStatComponent->Delegate_OnHpChanged.AddUObject(_InPlayerUiWidget, &UPlayerUIWidget::UpdateHp);
-		m_pStatComponent->Delegate_OnHpChanged.AddUObject(_InPlayerUiWidget, &UPlayerUIWidget::UpdateProgressBarHp);
+		StatComponent->Delegate_OnHpChanged.AddUObject(_InPlayerUiWidget, &UPlayerUIWidget::UpdateHp);
+		StatComponent->Delegate_OnHpChanged.AddUObject(_InPlayerUiWidget, &UPlayerUIWidget::UpdateProgressBarHp);
 
 		// Stamina 관련 델리게이트 이벤트
-		m_pStatComponent->Delegate_OnStaminaChanged.AddUObject(_InPlayerUiWidget, &UPlayerUIWidget::UpdateProgressBarStamina);
+		StatComponent->Delegate_OnStaminaChanged.AddUObject(_InPlayerUiWidget, &UPlayerUIWidget::UpdateProgressBarStamina);
 
+
+#pragma region InterAction 관련
+		UiComponent->Delegate_OnDialogRender.AddUObject(_InPlayerUiWidget, &UPlayerUIWidget::Set_DialogRenderOnOff);
+		UiComponent->Delegate_OnInterActionFKeyStateChanged.AddUObject(_InPlayerUiWidget, &UPlayerUIWidget::F_KeyStateUpdate);
+		UiComponent->Delegate_OnInterActionFKey_SetStateChanged.AddUObject(_InPlayerUiWidget, &UPlayerUIWidget::Set_F_KeyState);
+#pragma endregion 
 
 	}
 }
@@ -169,16 +180,16 @@ void AKZCharacterPlayer::Tick(float DeltaTime)
 
 	if (bIsSprint && GetVelocity().Size() > 0)
 	{
-		m_pStatComponent->Apply_Stamina(SprintStaminaConsumptionRate * DeltaTime);
+		StatComponent->Apply_Stamina(SprintStaminaConsumptionRate * DeltaTime);
 
-		if (m_pStatComponent->GetCurrentStamina() <= 0)
+		if (StatComponent->GetCurrentStamina() <= 0)
 		{
 			StopSprint(FInputActionValue());
 		}
 	}
 
 	/* 5_12 선환 추가 Ui 동기화 */
-	m_pStatComponent->Delegate_OnStaminaChanged.Broadcast(m_pStatComponent->GetCurrentStamina(), m_pStatComponent->GetMaxStamina());
+	StatComponent->Delegate_OnStaminaChanged.Broadcast(StatComponent->GetCurrentStamina(), StatComponent->GetMaxStamina());
 }
 
 // Called to bind functionality to input
@@ -209,7 +220,7 @@ void AKZCharacterPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			JumpAction,
 			ETriggerEvent::Triggered,
 			this,
-			&ACharacter::Jump
+			&AKZCharacterPlayer::Jump
 		);
 		
 		EnhancedInputComponent->BindAction(
@@ -272,7 +283,7 @@ void AKZCharacterPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 		EnhancedInputComponent->BindAction(
 			UiTestAction,
-			ETriggerEvent::Started,
+			ETriggerEvent::Triggered,
 			this,
 			&AKZCharacterPlayer::UiTest
 		);
@@ -282,25 +293,25 @@ void AKZCharacterPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 void AKZCharacterPlayer::SetStaminaRegenBlock(bool bBlocked)
 {
-	if (m_pStatComponent)
+	if (StatComponent)
 	{
-		m_pStatComponent->bIsStaminaRegenBlocked = bBlocked;
+		StatComponent->bIsStaminaRegenBlocked = bBlocked;
 	}
 }
 
 void AKZCharacterPlayer::ApplyStaminaTest(float value)
 {
-	if (m_pStatComponent)
+	if (StatComponent)
 	{
-		m_pStatComponent->Apply_Stamina(value);
+		StatComponent->Apply_Stamina(value);
 	}
 }
 
 bool AKZCharacterPlayer::HasEnoughStamina(float value)
 {
-	if (m_pStatComponent)
+	if (StatComponent)
 	{
-		return m_pStatComponent->GetCurrentStamina() >= value;
+		return StatComponent->GetCurrentStamina() >= value;
 	}
 	return false;
 }
@@ -361,10 +372,10 @@ void AKZCharacterPlayer::Move(const FInputActionValue& value)
 
 void AKZCharacterPlayer::Sprint(const FInputActionValue& value)
 {
-	if (m_pStatComponent->GetCurrentStamina() > 0)
+	if (StatComponent->GetCurrentStamina() > 0)
 	{
 		bIsSprint = true;
-		m_pStatComponent->bIsStaminaRegenBlocked = true;
+		StatComponent->bIsStaminaRegenBlocked = true;
 		GetCharacterMovement()->MaxWalkSpeed = 1000.0f;
 	}
 }
@@ -372,7 +383,7 @@ void AKZCharacterPlayer::Sprint(const FInputActionValue& value)
 void AKZCharacterPlayer::StopSprint(const FInputActionValue& value)
 {
 	bIsSprint = false;
-	m_pStatComponent->bIsStaminaRegenBlocked = false;
+	StatComponent->bIsStaminaRegenBlocked = false;
 	GetCharacterMovement()->MaxWalkSpeed = 400.0f;
 }
 
@@ -396,7 +407,7 @@ void AKZCharacterPlayer::Dodge(const FInputActionValue& value)
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (!AnimInstance) return;
 
-	if (m_pStatComponent->GetCurrentStamina() < 25 || AnimInstance->Montage_IsPlaying(DodgeMontage) || bIsDodge) return;
+	if (StatComponent->GetCurrentStamina() < 25 || AnimInstance->Montage_IsPlaying(DodgeMontage) || bIsDodge) return;
 
 	if (GetCharacterMovement()->IsFalling())
 	{
@@ -405,7 +416,7 @@ void AKZCharacterPlayer::Dodge(const FInputActionValue& value)
 	
 
 	/* Stamina 관련 테스트 코드(5_12 선환) */
-	m_pStatComponent->Apply_Stamina(25);
+	StatComponent->Apply_Stamina(25);
 
 	FVector InputVector = GetLastMovementInputVector();
 
@@ -431,12 +442,12 @@ void AKZCharacterPlayer::Dodge(const FInputActionValue& value)
 
 void AKZCharacterPlayer::WeakAttack(const FInputActionValue& value)
 {
-	if (GetCharacterMovement()->IsFalling() && m_pStatComponent->GetCurrentStamina() <= 0)
+	if (GetCharacterMovement()->IsFalling() && StatComponent->GetCurrentStamina() <= 0)
 	{
-		m_pStatComponent->bIsStaminaRegenBlocked = false;
+		StatComponent->bIsStaminaRegenBlocked = false;
 		return;
 	}
-	m_pStatComponent->bIsStaminaRegenBlocked = true;
+	StatComponent->bIsStaminaRegenBlocked = true;
 	bIsCharging = true;
 	CurrentChargeTime = 0.0f;
 
@@ -474,11 +485,11 @@ void AKZCharacterPlayer::WeakAttackCompleted(const FInputActionValue& value)
 
 void AKZCharacterPlayer::StrongAttack(const FInputActionValue& value)
 {
-	if (GetCharacterMovement()->IsFalling() && m_pStatComponent->GetCurrentStamina() <= 0)
+	if (GetCharacterMovement()->IsFalling() && StatComponent->GetCurrentStamina() <= 0)
 	{
 		return;
 	}
-	m_pStatComponent->bIsStaminaRegenBlocked = true;
+	StatComponent->bIsStaminaRegenBlocked = true;
 	//StrongAttackBegin();
 	ProcessAttackCommand(EAttackType::Strong);
 
@@ -492,6 +503,57 @@ void AKZCharacterPlayer::UiTest()
 	//m_pStatComponent->Apply_Damage(50);
 	//
 	//m_pStatComponent->Delegate_OnHpChanged.Broadcast(m_pStatComponent->GetCurrentHp());
+
+
+	// 5_18 상호작용 UI 테스터 코드 
+	const float DeltaTime = GetWorld()->GetDeltaSeconds();
+
+	/*F키 상호작용 테스트 코드*/
+	switch (InterActionType)
+	{
+	case EInterActionType::None:
+		break;
+	case EInterActionType::Dialog:
+		break;
+	case EInterActionType::Chest:
+		break;
+	case EInterActionType::Item:
+		UiComponent->Delegate_OnInterActionFKeyStateChanged.Broadcast(DeltaTime);
+		break;
+	default:
+		break;
+	}
+}
+
+void AKZCharacterPlayer::Jump()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (GetCharacterMovement()->IsFalling() || CurrentAttackType != EAttackType::None || AnimInstance->Montage_IsPlaying(JumpMontage)) return;
+
+
+	if (AnimInstance && JumpMontage)
+	{
+		AnimInstance->Montage_Play(JumpMontage);
+		AnimInstance->Montage_JumpToSection(FName("Prep"), JumpMontage);
+	}
+
+}
+
+void AKZCharacterPlayer::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && AnimInstance->Montage_IsPlaying(JumpMontage))
+	{
+		AnimInstance->Montage_JumpToSection(FName("Land"), JumpMontage);
+	}
+
+}
+
+void AKZCharacterPlayer::ExcutePhysicsJump()
+{
+	Super::Jump();
 }
 
 
@@ -503,6 +565,7 @@ void AKZCharacterPlayer::Guard(const FInputActionValue& value)
 		return;
 	}
 	bIsGuarding = true;
+	GuardStartTime = GetWorld()->GetTimeSeconds();
 	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
 	//PlayGuardMontage();
 }
@@ -521,22 +584,49 @@ void AKZCharacterPlayer::StopGuard(const FInputActionValue& value)
 // 데미지를 받은 입장.
 void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 {
-	if (bIsDead) { return; }
+	if (bIsDead || bIsInvincible) { return; }
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	// 가드 상태라면 데미지 반감.
+	if (bIsGuarding && StatComponent)
+	{
+		float CurrentTime = GetWorld()->GetTimeSeconds();
+		float GuardDuration = CurrentTime - GuardStartTime;
+		// 저스트 가드 성공 시 넉백만 있고, 패널티 X
+		if (GuardDuration <= JustGuardWindow)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("Just Guard!!"));
+			LaunchCharacterNotify(750.0f);
+			return;
+		}
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("Guard!!"));
+		StatComponent->Apply_Damage(DamageData.DamageAmount / 2);
+		StatComponent->Delegate_OnHpChanged.Broadcast(StatComponent->GetCurrentHp());
+		if (StatComponent->GetCurrentHp() <= 0)
+		{
+			bIsDead = true;
+			Dead();
+			return;
+		}
+		LaunchCharacterNotify(750.0f);
+		return;
+	}
 
+	// 공격하고 있는 대상을 가져옴.
 	LastAttacker = DamageData.Attacker;
 	//float FinalDamage = DamageData.DamageAmount;
 
+	// 공격하고 있는 대상의 위치와 데미지에 따라서 피격 애니메이션 재생.
 	FString IntensityStr = GetIntensityString(DamageData.DamageAmount);
 	FString SwingStr = GetSwingDirString();
 	FString PosStr = (IntensityStr == "Strong") ? TEXT("F") : GetAttackerPosString(DamageData.Attacker);
 
 	FName SectionName = *FString::Printf(TEXT("%s%s%s"), *IntensityStr, *SwingStr, *PosStr);
 
-	if (m_pStatComponent)
+	if (StatComponent)
 	{
-		m_pStatComponent->Apply_Damage(DamageData.DamageAmount);
-		m_pStatComponent->Delegate_OnHpChanged.Broadcast(m_pStatComponent->GetCurrentHp());
-		if (m_pStatComponent->GetCurrentHp() <= 0)
+		StatComponent->Apply_Damage(DamageData.DamageAmount);
+		StatComponent->Delegate_OnHpChanged.Broadcast(StatComponent->GetCurrentHp());
+		if (StatComponent->GetCurrentHp() <= 0)
 		{
 			bIsDead = true;
 			Dead();
@@ -549,8 +639,8 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 			//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 			PlayAnimMontage(HitMontage, 1.0f, SectionName);
 
-			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-			if (AnimInstance)
+			
+			if (AnimInstance && !AnimInstance->Montage_IsPlaying(HitMontage))
 			{
 				// 몽타주 종료 이벤트에 등록할 델리게이트 설정.
 				FOnMontageEnded OnMontageEnded;
@@ -616,4 +706,24 @@ FString AKZCharacterPlayer::GetIntensityString(float DamageAmount)
 void AKZCharacterPlayer::HitMontageEnd(UAnimMontage* TargetMontage, bool bInterrupted)
 {
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+}
+
+void AKZCharacterPlayer::Render_InterActionUi(EInterActionType _Tag, ESlateVisibility _eSlateVisibility)
+{
+	UiComponent->Delegate_OnDialogRender.Broadcast(_Tag, _eSlateVisibility);
+
+	switch (_Tag)
+	{
+	case EInterActionType::Item:
+		//UiComponent->
+		break;
+
+	default:
+		break;
+	}
+}
+
+void AKZCharacterPlayer::Ui_Key_State_Reset()
+{
+	UiComponent->Delegate_OnInterActionFKey_SetStateChanged.Broadcast(0.0f);
 }
