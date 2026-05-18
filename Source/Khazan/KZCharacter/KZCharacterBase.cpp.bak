@@ -93,13 +93,6 @@ AKZCharacterBase::AKZCharacterBase()
 		HitMontage = HitMontageRef.Object;
 	}
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> JumpMontageRef(
-		TEXT("/Game/Khazan_anim/JumpAndDodge/AM_Jump.AM_Jump")
-	);
-	if (JumpMontageRef.Succeeded())
-	{
-		JumpMontage = JumpMontageRef.Object;
-	}
 }
 
 // Called when the game starts or when spawned

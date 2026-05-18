@@ -209,7 +209,7 @@ void AKZCharacterPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			JumpAction,
 			ETriggerEvent::Triggered,
 			this,
-			&ACharacter::Jump
+			&AKZCharacterPlayer::Jump
 		);
 		
 		EnhancedInputComponent->BindAction(
@@ -494,6 +494,37 @@ void AKZCharacterPlayer::UiTest()
 	//m_pStatComponent->Delegate_OnHpChanged.Broadcast(m_pStatComponent->GetCurrentHp());
 }
 
+void AKZCharacterPlayer::Jump()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (GetCharacterMovement()->IsFalling() || CurrentAttackType != EAttackType::None || AnimInstance->Montage_IsPlaying(JumpMontage)) return;
+
+
+	if (AnimInstance && JumpMontage)
+	{
+		AnimInstance->Montage_Play(JumpMontage);
+		AnimInstance->Montage_JumpToSection(FName("Prep"), JumpMontage);
+	}
+
+}
+
+void AKZCharacterPlayer::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && AnimInstance->Montage_IsPlaying(JumpMontage))
+	{
+		AnimInstance->Montage_JumpToSection(FName("Land"), JumpMontage);
+	}
+
+}
+
+void AKZCharacterPlayer::ExcutePhysicsJump()
+{
+	Super::Jump();
+}
+
 
 
 void AKZCharacterPlayer::Guard(const FInputActionValue& value)
@@ -503,6 +534,7 @@ void AKZCharacterPlayer::Guard(const FInputActionValue& value)
 		return;
 	}
 	bIsGuarding = true;
+	GuardStartTime = GetWorld()->GetTimeSeconds();
 	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
 	//PlayGuardMontage();
 }
@@ -522,10 +554,37 @@ void AKZCharacterPlayer::StopGuard(const FInputActionValue& value)
 void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 {
 	if (bIsDead || bIsInvincible) { return; }
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	// 가드 상태라면 데미지 반감.
+	if (bIsGuarding && m_pStatComponent)
+	{
+		float CurrentTime = GetWorld()->GetTimeSeconds();
+		float GuardDuration = CurrentTime - GuardStartTime;
+		// 저스트 가드 성공 시 넉백만 있고, 패널티 X
+		if (GuardDuration <= JustGuardWindow)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("Just Guard!!"));
+			LaunchCharacterNotify(750.0f);
+			return;
+		}
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("Guard!!"));
+		m_pStatComponent->Apply_Damage(DamageData.DamageAmount / 2);
+		m_pStatComponent->Delegate_OnHpChanged.Broadcast(m_pStatComponent->GetCurrentHp());
+		if (m_pStatComponent->GetCurrentHp() <= 0)
+		{
+			bIsDead = true;
+			Dead();
+			return;
+		}
+		LaunchCharacterNotify(750.0f);
+		return;
+	}
 
+	// 공격하고 있는 대상을 가져옴.
 	LastAttacker = DamageData.Attacker;
 	//float FinalDamage = DamageData.DamageAmount;
 
+	// 공격하고 있는 대상의 위치와 데미지에 따라서 피격 애니메이션 재생.
 	FString IntensityStr = GetIntensityString(DamageData.DamageAmount);
 	FString SwingStr = GetSwingDirString();
 	FString PosStr = (IntensityStr == "Strong") ? TEXT("F") : GetAttackerPosString(DamageData.Attacker);
@@ -549,7 +608,7 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 			//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 			PlayAnimMontage(HitMontage, 1.0f, SectionName);
 
-			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+			
 			if (AnimInstance && !AnimInstance->Montage_IsPlaying(HitMontage))
 			{
 				// 몽타주 종료 이벤트에 등록할 델리게이트 설정.
