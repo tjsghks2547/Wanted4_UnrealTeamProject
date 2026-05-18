@@ -122,6 +122,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Input, BlueprintReadOnly)
 	TObjectPtr<class UInputAction> UiTestAction;
 
+	
+
 
 	void Move(const FInputActionValue& value);
 	void Sprint(const FInputActionValue& value);
@@ -133,6 +135,14 @@ protected:
 	void Guard(const FInputActionValue& value);
 	void StopGuard(const FInputActionValue& value);
 	void UiTest();
+
+	// 점프
+public:
+	virtual void Jump() override;
+	virtual void Landed(const FHitResult& Hit) override;
+
+	void ExcutePhysicsJump();
+
 
 	// 차징 공격
 protected:
@@ -162,9 +172,7 @@ protected:
 	FString GetIntensityString(float DamageAmout);
 
 	void HitMontageEnd(UAnimMontage* TargetMontage, bool bInterrupted);
-
-
-
+	
 /* 5_18 선환 추가 ( Ui Dialog Rendering 관련 )  */
 public:
 	FORCEINLINE void Set_Current_OverlapTypes(EInterActionType _Tag)
@@ -189,4 +197,22 @@ protected:
 	UPROPERTY(VisibleAnywhere)	
 	bool HasUiKeyFinished;
 /* ---------------------------------------------------- */
+
+
+	// 회피 시 무적을 위한 Set
+public:
+	FORCEINLINE void SetInvincible(bool IsInvincible) { bIsInvincible = IsInvincible; }
+	FORCEINLINE bool IsInvincible() const { return bIsInvincible; }
+
+protected:
+	UPROPERTY(EditAnywhere, Category = Dodge)
+	bool bIsInvincible = false;
+
+	// 저스트 가드
+protected:
+	float GuardStartTime = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = Guard)
+	float JustGuardWindow = 0.2f;
+
 };

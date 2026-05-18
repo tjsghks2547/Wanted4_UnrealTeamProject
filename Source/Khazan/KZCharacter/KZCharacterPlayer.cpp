@@ -587,7 +587,7 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 	if (bIsDead || bIsInvincible) { return; }
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	// 가드 상태라면 데미지 반감.
-	if (bIsGuarding && m_pStatComponent)
+	if (bIsGuarding && StatComponent)
 	{
 		float CurrentTime = GetWorld()->GetTimeSeconds();
 		float GuardDuration = CurrentTime - GuardStartTime;
@@ -599,9 +599,9 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 			return;
 		}
 		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("Guard!!"));
-		m_pStatComponent->Apply_Damage(DamageData.DamageAmount / 2);
-		m_pStatComponent->Delegate_OnHpChanged.Broadcast(m_pStatComponent->GetCurrentHp());
-		if (m_pStatComponent->GetCurrentHp() <= 0)
+		StatComponent->Apply_Damage(DamageData.DamageAmount / 2);
+		StatComponent->Delegate_OnHpChanged.Broadcast(StatComponent->GetCurrentHp());
+		if (StatComponent->GetCurrentHp() <= 0)
 		{
 			bIsDead = true;
 			Dead();
