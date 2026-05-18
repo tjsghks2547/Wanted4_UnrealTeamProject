@@ -14,6 +14,12 @@
 // 전방선언.
 class UInputAction;
 
+/* 5_18 선환 추가 */
+enum class EInterActionType : uint8;
+enum class EInterAction_Key_Type : uint8;
+
+
+
 UCLASS()
 class KHAZAN_API AKZCharacterPlayer : 
 	public AKZCharacterBase,
@@ -65,7 +71,11 @@ protected:
 
 	// 5_11 선환 추가
 	UPROPERTY(VisibleAnywhere, Category = Stat)
-	TObjectPtr<class UStatComponent> m_pStatComponent; 
+	TObjectPtr<class UStatComponent> StatComponent;
+
+	// 5_18 선환 추가 
+	UPROPERTY(VisibleAnywhere, Category = UI)
+	TObjectPtr<class UUi_InterAction_Component> UiComponent; 
 
 	UPROPERTY(EditAnywhere, Category = Stat)
 	float SprintStaminaConsumptionRate = 5.0f;
@@ -112,8 +122,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Input, BlueprintReadOnly)
 	TObjectPtr<class UInputAction> UiTestAction;
 
-	
-
 
 	void Move(const FInputActionValue& value);
 	void Sprint(const FInputActionValue& value);
@@ -125,14 +133,6 @@ protected:
 	void Guard(const FInputActionValue& value);
 	void StopGuard(const FInputActionValue& value);
 	void UiTest();
-
-	// 점프
-public:
-	virtual void Jump() override;
-	virtual void Landed(const FHitResult& Hit) override;
-
-	void ExcutePhysicsJump();
-
 
 	// 차징 공격
 protected:
@@ -163,20 +163,30 @@ protected:
 
 	void HitMontageEnd(UAnimMontage* TargetMontage, bool bInterrupted);
 
-	// 회피 시 무적을 위한 Set
+
+
+/* 5_18 선환 추가 ( Ui Dialog Rendering 관련 )  */
 public:
-	FORCEINLINE void SetInvincible(bool IsInvincible) { bIsInvincible = IsInvincible; }
-	FORCEINLINE bool IsInvincible() const { return bIsInvincible; }
+	FORCEINLINE void Set_Current_OverlapTypes(EInterActionType _Tag)
+	{
+		InterActionType = _Tag;
+	};
+	void Set_Finish_Ui_Key_InterAction(bool _InbKeyFinished)
+	{
+		HasUiKeyFinished = _InbKeyFinished;
+	};
+
+	// 박스와 충돌할때 발생시키는 함수 
+	void Render_InterActionUi(EInterActionType _Tag, ESlateVisibility _eSlateVisibility);	
+	void Ui_Key_State_Reset();
+
+	bool Get_Ui_Key_Statue() { return HasUiKeyFinished; }
 
 protected:
-	UPROPERTY(EditAnywhere, Category = Dodge)
-	bool bIsInvincible = false;
+	UPROPERTY(VisibleAnywhere, Category = OverlapType, BlueprintReadOnly)
+	EInterActionType InterActionType;
 
-	// 저스트 가드
-protected:
-	float GuardStartTime = 0.0f;
-
-	UPROPERTY(EditAnywhere, Category = Guard)
-	float JustGuardWindow = 0.2f;
-
+	UPROPERTY(VisibleAnywhere)	
+	bool HasUiKeyFinished;
+/* ---------------------------------------------------- */
 };

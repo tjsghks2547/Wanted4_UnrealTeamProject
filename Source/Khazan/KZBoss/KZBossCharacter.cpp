@@ -20,7 +20,7 @@ AKZBossCharacter::AKZBossCharacter()
 
 	
 	//m_pStatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
-	m_pStatComponent->SetUp_stat_Hp(100, 100);
+	StatComponent->SetUp_stat_Hp(100, 100);
 
 	// AI 회전 및 이동 설정
 	bUseControllerRotationYaw = true;
