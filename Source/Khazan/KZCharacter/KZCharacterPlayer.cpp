@@ -415,8 +415,6 @@ void AKZCharacterPlayer::Look(const FInputActionValue& value)
 	// 입력값 가져오기.
 	FVector2D RotationValue = value.Get<FVector2D>();
 
-	
-
 	// 회전 처리
 	AddControllerYawInput(RotationValue.X * 0.7);
 
