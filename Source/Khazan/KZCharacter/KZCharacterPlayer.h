@@ -9,6 +9,7 @@
 #include "../Interface/IInteractableTarget.h"
 #include "Interface/PlayerUiWidget_Interface.h"
 #include "../Interface/KZDamageInterface.h"
+#include "../Interface/KZLockOnInterface.h"
 #include "KZCharacterPlayer.generated.h"
 
 // 전방선언.
@@ -25,7 +26,8 @@ class KHAZAN_API AKZCharacterPlayer :
 	public AKZCharacterBase,
 	public IIInteractableTarget,
 	public IPlayerUiWidget_Interface, /* 5_11 선환 추가 ( UI Widget과 Player 의존성 없애기 위해 인터페이스 구현 ) */
-	public IKZDamageInterface
+	public IKZDamageInterface,
+	public IKZLockOnInterface
 {
 	GENERATED_BODY()
 
@@ -122,8 +124,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Input, BlueprintReadOnly)
 	TObjectPtr<class UInputAction> UiTestAction;
 
-	
-
+	UPROPERTY(EditAnywhere, Category = Input, BlueprintReadOnly)
+	TObjectPtr<class UInputAction> LockOnAction;
 
 	void Move(const FInputActionValue& value);
 	void Sprint(const FInputActionValue& value);
@@ -134,6 +136,7 @@ protected:
 	void StrongAttack(const FInputActionValue& value);
 	void Guard(const FInputActionValue& value);
 	void StopGuard(const FInputActionValue& value);
+	void LockOn(const FInputActionValue& value);
 	void UiTest();
 
 	// 점프
@@ -214,5 +217,20 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = Guard)
 	float JustGuardWindow = 0.2f;
+
+	// 락온
+protected:
+	UPROPERTY(EditAnywhere, Category = LockOn)
+	AActor* LockOnTarget = nullptr;
+	UPROPERTY(EditAnywhere, Category = LockOn)
+	float LockOnMaxDistance;
+	UPROPERTY(EditAnywhere, Category = LockOn)
+	float DetectRad;
+
+
+	// IKZLockOnInterface을(를) 통해 상속됨
+	bool CanTargetLockOn() override;
+
+	FVector GetTargetLocation() override;
 
 };
