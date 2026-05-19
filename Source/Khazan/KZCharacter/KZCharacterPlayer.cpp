@@ -14,6 +14,7 @@
 #include "Types/InterActionType.h"
 #pragma endregion 
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Engine/OverlapResult.h"
 
 // Sets default values
 AKZCharacterPlayer::AKZCharacterPlayer()
@@ -118,14 +119,22 @@ AKZCharacterPlayer::AKZCharacterPlayer()
 	{
 		UiTestAction = UiTestActionRef.Object;
 	}
-		static ConstructorHelpers::FObjectFinder<UInputAction> GuardActionRef{
-	TEXT("/Game/Khazan/Input/Action/IA_Guard.IA_Guard")
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> GuardActionRef{
+		TEXT("/Game/Khazan/Input/Action/IA_Guard.IA_Guard")
 	};
 	if (GuardActionRef.Succeeded())
 	{
 		GuardAction = GuardActionRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> LockOnActionRef{
+		TEXT("/Game/Khazan/Input/Action/IA_LockOn.IA_LockOn")
+	};
+	if (LockOnActionRef.Succeeded())
+	{
+		LockOnAction = LockOnActionRef.Object;
+	}
 
 
 
@@ -287,6 +296,12 @@ void AKZCharacterPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			this,
 			&AKZCharacterPlayer::UiTest
 		);
+		EnhancedInputComponent->BindAction(
+			LockOnAction,
+			ETriggerEvent::Started,
+			this,
+			&AKZCharacterPlayer::LockOn
+		);
 	}
 
 }
@@ -341,13 +356,10 @@ void AKZCharacterPlayer::Move(const FInputActionValue& value)
 	if (GetCharacterMovement()->MovementMode == EMovementMode::MOVE_Walking)
 	{
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance && WeakAttackMontage && AnimInstance->Montage_IsPlaying(WeakAttackMontage))
+		if (AnimInstance && ((WeakAttackMontage && AnimInstance->Montage_IsPlaying(WeakAttackMontage)) || 
+							 (StrongAttackMontage && AnimInstance->Montage_IsPlaying(StrongAttackMontage))))
 		{
-			AnimInstance->Montage_Stop(0.2f, WeakAttackMontage);
-		}
-		else if (AnimInstance && StrongAttackMontage && AnimInstance->Montage_IsPlaying(StrongAttackMontage))
-		{
-			AnimInstance->Montage_Stop(0.2f, StrongAttackMontage);
+			ForceEndAttackState();
 		}
 	}
 	// 입력값 = Vector
@@ -372,6 +384,17 @@ void AKZCharacterPlayer::Move(const FInputActionValue& value)
 
 void AKZCharacterPlayer::Sprint(const FInputActionValue& value)
 {
+	if (bIsGuarding) return;
+
+	if (CurrentAttackType != EAttackType::None)
+	{
+		if (GetCharacterMovement()->MovementMode == EMovementMode::MOVE_Walking)
+		{
+			ForceEndAttackState();
+		}
+		else return;
+	}
+
 	if (StatComponent->GetCurrentStamina() > 0)
 	{
 		bIsSprint = true;
@@ -392,8 +415,6 @@ void AKZCharacterPlayer::Look(const FInputActionValue& value)
 	// 입력값 가져오기.
 	FVector2D RotationValue = value.Get<FVector2D>();
 
-	
-
 	// 회전 처리
 	AddControllerYawInput(RotationValue.X * 0.7);
 
@@ -406,6 +427,15 @@ void AKZCharacterPlayer::Dodge(const FInputActionValue& value)
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (!AnimInstance) return;
+
+	if (CurrentAttackType != EAttackType::None)
+	{
+		if (GetCharacterMovement()->MovementMode == EMovementMode::MOVE_Walking)
+		{
+			ForceEndAttackState();
+		}
+		else return;
+	}
 
 	if (StatComponent->GetCurrentStamina() < 25 || AnimInstance->Montage_IsPlaying(DodgeMontage) || bIsDodge) return;
 
@@ -560,10 +590,17 @@ void AKZCharacterPlayer::ExcutePhysicsJump()
 
 void AKZCharacterPlayer::Guard(const FInputActionValue& value)
 {
-	if (GetCharacterMovement()->IsFalling() || CurrentAttackType != EAttackType::None)
+	if (GetCharacterMovement()->IsFalling()) return;
+
+	if (CurrentAttackType != EAttackType::None)
 	{
-		return;
+		if (GetCharacterMovement()->MovementMode == EMovementMode::MOVE_Walking)
+		{
+			ForceEndAttackState();
+		}
+		else return;
 	}
+
 	bIsGuarding = true;
 	GuardStartTime = GetWorld()->GetTimeSeconds();
 	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
@@ -572,19 +609,77 @@ void AKZCharacterPlayer::Guard(const FInputActionValue& value)
 
 void AKZCharacterPlayer::StopGuard(const FInputActionValue& value)
 {
-	if (GetCharacterMovement()->IsFalling() || CurrentAttackType != EAttackType::None)
-	{
-		return;
-	}
+	// 가드 해제는 어떤 상황에서도 보장되어야 입력과 캐릭터 상태가 동기화됨
 	bIsGuarding = false;
 	GetCharacterMovement()->MaxWalkSpeed = 600.0f;
 	//StopAnimMontage(GuardMontage);
+}
+
+void AKZCharacterPlayer::LockOn(const FInputActionValue& value)
+{
+	TArray<FOverlapResult> OverlapResults;
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(LockOn), true, this);
+	FVector MyLoc = GetActorLocation();
+
+	GetWorld()->OverlapMultiByChannel(
+		OverlapResults,
+		MyLoc,
+		FQuat::Identity,
+		C_CHANNEL_MONSTER,
+		FCollisionShape::MakeSphere(1000.0f),
+		QueryParams
+	);
+
+	AActor* BestTarget = nullptr;
+	float BestScore = -1.0f;
+
+	for (const FOverlapResult& Result : OverlapResults)
+	{
+		AActor* Candidate = Result.GetActor();
+		// 찾은 액터들 중에 중복 확인.
+		if (!Candidate || Candidate == this) continue;
+
+		// 해당 액터가 인터페이스를 가지고 있는지 확인.
+		if (Candidate->GetClass()->ImplementsInterface(UKZLockOnInterface::StaticClass()))
+		{
+			FVector CameraLoc = Camera->GetComponentLocation();
+			FVector CameraForward = Camera->GetForwardVector();
+			FVector ToTarget = (Candidate->GetActorLocation() - CameraLoc).GetSafeNormal();
+			
+			IKZLockOnInterface* LockOnInterface = Cast<IKZLockOnInterface>(Candidate);
+			if (LockOnInterface)
+			{
+				float CurrentDot = FVector::DotProduct(CameraForward, ToTarget);
+
+				if (CurrentDot > 0.7f && CurrentDot > BestScore)
+				{
+					FHitResult ViewHit;
+					FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(LockOn), true, this);
+					TraceParams.AddIgnoredActor(Candidate);
+
+					if (!GetWorld()->LineTraceSingleByChannel(ViewHit, CameraLoc, Candidate->GetActorLocation(), ECC_Visibility, TraceParams))
+					{
+						BestScore = CurrentDot;
+						BestTarget = Candidate;
+					}
+				}
+			}
+		}
+	}
+	if (BestTarget)
+	{
+		LockOnTarget = BestTarget;
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("TargetFound"));
+		UE_LOG(LogTemp, Log, TEXT("Target Found: %s"), *BestTarget->GetName());
+	}
 }
 
 // 데미지를 받은 입장.
 void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 {
 	if (bIsDead || bIsInvincible) { return; }
+
+	ForceEndAttackState();
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	// 가드 상태라면 데미지 반감.
 	if (bIsGuarding && StatComponent)
@@ -595,7 +690,7 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 		if (GuardDuration <= JustGuardWindow)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("Just Guard!!"));
-			LaunchCharacterNotify(750.0f);
+			LaunchCharacterNotify(700.0f);
 			return;
 		}
 		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("Guard!!"));
@@ -607,7 +702,7 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 			Dead();
 			return;
 		}
-		LaunchCharacterNotify(750.0f);
+		LaunchCharacterNotify(500.0f);
 		return;
 	}
 
@@ -624,6 +719,7 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 
 	if (StatComponent)
 	{
+		
 		StatComponent->Apply_Damage(DamageData.DamageAmount);
 		StatComponent->Delegate_OnHpChanged.Broadcast(StatComponent->GetCurrentHp());
 		if (StatComponent->GetCurrentHp() <= 0)
@@ -633,14 +729,19 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 			return;
 		}
 
-		if (HitMontage)
+		if (HitMontage && !AnimInstance->Montage_IsPlaying(HitMontage))
 		{
 			GetCharacterMovement()->StopMovementImmediately();
+
+			if (APlayerController* PC = Cast<APlayerController>(GetController()))
+			{
+				PC->SetIgnoreMoveInput(true);
+			}
 			//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 			PlayAnimMontage(HitMontage, 1.0f, SectionName);
 
 			
-			if (AnimInstance && !AnimInstance->Montage_IsPlaying(HitMontage))
+			if (AnimInstance && AnimInstance->Montage_IsPlaying(HitMontage))
 			{
 				// 몽타주 종료 이벤트에 등록할 델리게이트 설정.
 				FOnMontageEnded OnMontageEnded;
@@ -706,6 +807,11 @@ FString AKZCharacterPlayer::GetIntensityString(float DamageAmount)
 void AKZCharacterPlayer::HitMontageEnd(UAnimMontage* TargetMontage, bool bInterrupted)
 {
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		PC->SetIgnoreMoveInput(false);
+	}
 }
 
 void AKZCharacterPlayer::Render_InterActionUi(EInterActionType _Tag, ESlateVisibility _eSlateVisibility)
@@ -726,4 +832,14 @@ void AKZCharacterPlayer::Render_InterActionUi(EInterActionType _Tag, ESlateVisib
 void AKZCharacterPlayer::Ui_Key_State_Reset()
 {
 	UiComponent->Delegate_OnInterActionFKey_SetStateChanged.Broadcast(0.0f);
+}
+
+bool AKZCharacterPlayer::CanTargetLockOn()
+{
+	return false;
+}
+
+FVector AKZCharacterPlayer::GetTargetLocation()
+{
+	return FVector();
 }
