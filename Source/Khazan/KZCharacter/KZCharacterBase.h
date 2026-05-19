@@ -92,6 +92,9 @@ protected:
 	// 공격 도중에 모션을 끊고 움직이고 싶은 경우.
 	void AttackEndCheck() override;
 
+	// 공격 상태를 완전히 초기화 (캔슬 시 사용)
+	void ForceEndAttackState();
+
 	// IKZAnimationAttackInterface을(를) 통해 상속됨
 	void LaunchCharacterNotify(float LaunchForce) override;
 
