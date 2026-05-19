@@ -39,6 +39,9 @@ public:
 	// 보스가 스폰되어 이 컨트롤러가 빙의했을 때 실행
 	virtual void OnPossess(APawn* InPawn) override;
 
+	UFUNCTION()
+	void HandleOnHit(AActor* DamageCauser);
+
 	//void RetrySetTarget();
 
 	void UpdatePhase(EBossPhase NewPhase);
