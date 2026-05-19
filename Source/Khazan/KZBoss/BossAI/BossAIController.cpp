@@ -8,6 +8,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h" // UAISenseConfig_Sight 정의 포함
+#include "../../KZMonster/KZMonsterCharacter.h"
 
 ABossAIController::ABossAIController()
 {
@@ -34,21 +35,19 @@ ABossAIController::ABossAIController()
 
 void ABossAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
-	// 감지 성공 여부 확인
-	if (Stimulus.WasSuccessfullySensed())
+	if (Actor->IsA<APawn>() && Cast<APawn>(Actor)->IsPlayerControlled())
 	{
-		// 플레이어인지 확인 (태그 또는 Cast 사용가능)
-		APawn* SensedPawn = Cast<APawn>(Actor);
-		if (SensedPawn && SensedPawn->IsPlayerControlled())
+		// 감지 성공 여부 확인
+		if (Stimulus.WasSuccessfullySensed())
 		{
-			BlackboardComp = GetBlackboardComponent();
-			if (BlackboardComp)
-			{
-				BlackboardComp->SetValueAsObject(FName("PlayerPos"), Actor);
-			}
-			//// 블랙보드 값 업데이트 (기본 PlayerPos 키 사용)
-			//BlackboardComp->SetValueAsObject(FName("PlayerPos"), Actor);
-			//SetFocus(Actor); // 필요 시 타겟 따라보기
+			BlackboardComp->SetValueAsObject(FName("PlayerPos"), Actor);
+			BlackboardComp->SetValueAsBool(FName("IsReturning"), false); // 복귀 중단
+		}
+		// 플레이어가 감지 범위를 완전히 벗어났을 때 (SightRadius 설정 범위 초과)
+		else
+		{
+			BlackboardComp->ClearValue(FName("PlayerPos"));
+			BlackboardComp->SetValueAsBool(FName("IsReturning"), true); // 즉시 복귀 상태 전환
 		}
 	}
 }
@@ -59,6 +58,12 @@ void ABossAIController::OnPossess(APawn* InPawn)
 
 	// 델리게이트 바인딩
 	AIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &ABossAIController::OnTargetPerceptionUpdated);
+	
+	if (AKZMonsterCharacter* Monster = Cast<AKZMonsterCharacter>(InPawn))
+	{
+		Monster->OnMonsterDamaged.AddDynamic(this, &ABossAIController::HandleOnHit);
+	}
+
 
 	if (BTBoss)// && BTBoss->BlackboardAsset
 	{
@@ -87,16 +92,20 @@ void ABossAIController::OnPossess(APawn* InPawn)
 					// 보스의 현재 페이즈를 블랙보드에 저장
 					BlackboardComp->SetValueAsEnum(FName("CurrentPhase"), (uint8)Viper->CurrentPhase);
 				}
-
-				// 플레이어 타겟 설정 시도
-				//RetrySetTarget();
-
 			}
-
 		}
 
 	}
+}
 
+void ABossAIController::HandleOnHit(AActor* DamageCauser)
+{
+	// 데미지 처리 시 블랙보드에 상태를 기록하거나 AI 행동을 갱신할 수 있음
+	if (BlackboardComp)
+	{
+		BlackboardComp->SetValueAsBool(FName("IsHit"), true);
+		// 필요시 추가 로직 작성
+	}
 }
 //
 //void ABossAIController::RetrySetTarget()
