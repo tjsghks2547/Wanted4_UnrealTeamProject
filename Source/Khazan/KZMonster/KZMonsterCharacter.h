@@ -7,6 +7,7 @@
 #include "../Interface/IInteractableTarget.h"
 #include "../Interface/KZDamageInterface.h"
 #include "../Interface/KZAnimationAttackInterface.h"
+#include "../Interface/KZLockOnInterface.h"
 #include "KZMonsterCharacter.generated.h"
 
 
@@ -17,7 +18,7 @@ class UBlackboardComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDamaged, AActor*, Attacker);
 
 UCLASS()
-class KHAZAN_API AKZMonsterCharacter : public ACharacter, public IIInteractableTarget, public IKZDamageInterface, public IKZAnimationAttackInterface
+class KHAZAN_API AKZMonsterCharacter : public ACharacter, public IIInteractableTarget, public IKZDamageInterface, public IKZAnimationAttackInterface, public IKZLockOnInterface
 {
 	GENERATED_BODY()
 
@@ -85,6 +86,10 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UBlackboardComponent> BlackboardComp;
+	
+		// IKZLockOnInterface을(를) 통해 상속됨
+	bool CanTargetLockOn() override;
+	FVector GetTargetLocation() override;
 
 	// 죽음 이벤트를 위한 플래그
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = State)
@@ -99,4 +104,6 @@ protected:
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnMonsterDamaged OnMonsterDamaged;
+	
+	
 };
