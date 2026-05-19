@@ -61,6 +61,10 @@ void AKZBossCharacter::PlayAttackMontage()
 	// 1. 유효성 검사 (안전한 프로그래밍)
 	if (!BasicAttackMontage || !BackStepAttackMontage) return;
 
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+	if (!AnimInstance) return;
+
 	// 2. 보스만의 고유 로직: 확률에 따른 공격 선택
 	int32 RandomIdx = FMath::RandRange(1, 4);
 
@@ -80,40 +84,21 @@ void AKZBossCharacter::PlayAttackMontage()
 		SectionName = FName(*FString::Printf(TEXT("Batk%d"), RandomIdx));
 	}
 
-	// 3. 부모가 정의한 공통 로직 호출 (델리게이트 설정 및 재생을 부모에게 위임)
-	// 이 함수 안에서 BlackboardComp->SetValueAsBool(FName("IsAttacking"), false); 가 처리됩니다.
-	PlayAttackMontage_Internal(SelectedMontage, SectionName);
-	//if (BasicAttackMontage && BackStepAttackMontage)
-	//{
-	//	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	//	if (AnimInstance)
-	//	{
-	//		// 확률에 따라 공격 또는 백스텝 공격 선택 (1~3: 기본, 4: 백스텝)
-	//		int32 RandomIdx = FMath::RandRange(1, 4);
-	//		UAnimMontage* MontageToPlay = (RandomIdx == 4) ? BackStepAttackMontage : BasicAttackMontage;
-	//
-	//		AnimInstance->Montage_Play(MontageToPlay);
+	PlayAnimMontage(SelectedMontage, 1.0f, SectionName);
 
-	//		if (RandomIdx != 4)
-	//		{
-	//			FName SectionName = FName(*FString::Printf(TEXT("Batk%d"), RandomIdx));
-	//			AnimInstance->Montage_JumpToSection(SectionName, MontageToPlay);
-	//		}
+	// 몽타주가 끝났을 때 람다함수 바인딩
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
+		{
+			if (AIC && BlackboardComp)
+			{
+				BlackboardComp->SetValueAsBool(FName("IsAttacking"), false);
+				AIC->ClearFocus(EAIFocusPriority::Gameplay);
+			}
+		});
 
-			//// 몽타주 종료 시 블랙보드 상태 업데이트를 위한 델리게이트 설정
-			//FOnMontageEnded EndDelegate;
-			//EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
-			//	{
-			//		if (BlackboardComp)
-			//		{
-			//			// 'IsAttacking' 키를 false로 설정하여 다음 동작이 가능하게 함
-			//			BlackboardComp->SetValueAsBool(FName("IsAttacking"), false);
-			//		}
-			//	});
-
-			//AnimInstance->Montage_SetEndDelegate(EndDelegate, MontageToPlay);
-		//}
-	//}
+	// 몽타주가 끝났을 때, 호출될 델리게이트 설정
+	AnimInstance->Montage_SetEndDelegate(EndDelegate, BasicAttackMontage);
 }
 
 void AKZBossCharacter::ExecuteBackStep()
@@ -138,17 +123,23 @@ void AKZBossCharacter::ProcessDamage(const FDamageData& DamageData)
 {
 	Super::ProcessDamage(DamageData);
 
-	if (AIC && BlackboardComp)
-	{
-		// 복귀 중인데 공격을 받으면
-		if (BlackboardComp->GetValueAsBool(FName("IsReturning")))
-		{
-			// 데미지를 준 가해자를 다시 타겟으로 설정하고 복귀 중단
-			if (DamageData.Attacker)
-			{
-				BlackboardComp->SetValueAsObject(FName("PlayerPos"), DamageData.Attacker);
-				BlackboardComp->SetValueAsBool(FName("IsReturning"), false);
-			}
-		}
-	}
+	// Todo: 점심 이후 진행(피격모션으로 인한 공격모션 끊김 문제: 피격쉐이크 애니메이션 애셋 설정에서 
+	// // idle넣었는데 평소처럼 보스가 서있거나 전체 동작이 다보임)
+	//bool bIsAttacking = BlackboardComp->GetValueAsBool(FName("IsAttacking"));
+	//
+	//if (bIsAttacking)
+	//{
+	//	if (AdditiveHitMontage)
+	//	{
+	//		PlayAnimMontage(AdditiveHitMontage);
+	//	}
+	//}
+	//else
+	//{
+	//	if (HitMontage)
+	//	{
+	//		PlayAnimMontage(HitMontage);
+	//	}
+	//}
 }
+

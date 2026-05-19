@@ -9,6 +9,7 @@
 /**
  * 
  */
+
 UCLASS()
 class KHAZAN_API UBTService_CalculateDistance : public UBTService
 {
@@ -23,6 +24,8 @@ protected:
 	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
 private:
+	AAIController* AIController;
+
 	bool bIsFar;
 	float Radius;
 	float DistFromHome;
