@@ -35,32 +35,37 @@ public:
 	void UpdateProgressBarStamina(float _fCurrentStamina, float _fMaxStamina);
 	/* ----------------- */
 
-
 	/* 대화 UI 관련 */
-	void Set_DialogRenderOnOff(EInterActionType _eInterActionType, ESlateVisibility _eSlateVisibility);
+	void Set_DialogRenderOnOff(EInterActionType _eInterActionKeyType, ESlateVisibility _eSlateVisiblilty);
 	void F_KeyStateUpdate(float _InIncreaseAmount);
 	void Set_F_KeyState(float _InPercent);
 
+	/* 인벤 토리 UI 관련*/
+	void UpdateInventoryUI(TMap<FName, int32>& _ItemMapContainer);
+	void RenderInventoryUI();
 
 protected:
-#pragma region Hp 관련 UI 
+#pragma region Hp UI 
 	TObjectPtr<class UPlayerHpProgressBarWidget> WidgetHpProgressBar;
 	TObjectPtr<class UPlayerHpProgressBarWidget_White> WidgetHpWhiteProgressBar;
 	TObjectPtr<class UTextBlock> CurrentHpText;
 	TObjectPtr<class UTextBlock> MaxHpText;
 #pragma endregion 
 
-#pragma region Stamina 관련 UI
-	TObjectPtr<class UPlayerStaminaProgressBarWidget> WidgetStaminaProgressBar;
+#pragma region Stamina UI
+	TObjectPtr<class UPlayerStaminaProgressBarWidget> WidgetStaminProgressBar;
 #pragma endregion 
 
 
 #pragma region InterAction UI
 	TObjectPtr<class UPlayerInterActionDialogWidget> PlayerInterActionDialogWidget;
-	TObjectPtr<class UInterActionKey_F_ProgressBarUI> InterActionKeyFWidget; 
+	TObjectPtr<class UInterActionKey_F_ProgressBarUI> InterActionKeyFWidget;
 #pragma endregion 
 
 
+#pragma region Inventory UI 
+	TObjectPtr<class UInventoryWidget> InventoryUiWidget;
+#pragma endregion 
 
 
 };

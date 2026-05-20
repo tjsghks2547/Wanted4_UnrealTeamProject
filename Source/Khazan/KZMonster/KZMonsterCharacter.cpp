@@ -285,6 +285,10 @@ void AKZMonsterCharacter::LaunchCharacterNotify(float LaunchForce)
 
 bool AKZMonsterCharacter::CanTargetLockOn()
 {
+	if (bIsDead || (StatComponent && StatComponent->GetCurrentHp() <= 0))
+	{
+		return false;
+	}
 	return true;
 }
 

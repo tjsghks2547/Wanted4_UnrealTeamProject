@@ -2,17 +2,17 @@
 
 
 #include "UI/PlayerUIWidget.h"
-#include "UI/PlayerInterActionDialogWidget.h"
-#include "UI/InterActionKey_F_ProgressBarUI.h"
 #include "PlayerHpProgressBarWidget.h"
 #include "PlayerHpProgressBarWidget_White.h"
+#include "Components/TextBlock.h"
+#include "Interface/PlayerUiWidget_Interface.h"
 #include "PlayerStaminaProgressBarWidget.h"
 #include "Components/Image.h"
-#include "Components/TextBlock.h"
 #include "Animation/WidgetAnimation.h"
-#include "Interface/PlayerUiWidget_Interface.h"
+#include "PlayerInterActionDialogWidget.h"
+#include "InterActionKey_F_ProgressBarUI.h"
 #include "Types/InterActionType.h"
-
+#include "InventoryWidget.h"
 
 
 UPlayerUIWidget::UPlayerUIWidget(const FObjectInitializer& ObjectInitializer)
@@ -41,18 +41,26 @@ void UPlayerUIWidget::NativeConstruct()
 	ensureAlways(MaxHpText);
 
 	/* Stamina 관련 */
-	WidgetStaminaProgressBar = Cast<UPlayerStaminaProgressBarWidget>(GetWidgetFromName(TEXT("WBP_StaminaBar")));
+	WidgetStaminProgressBar = Cast<UPlayerStaminaProgressBarWidget>(GetWidgetFromName(TEXT("WBP_StaminaBar")));
 	ensureAlways(WidgetHpProgressBar);
 	/* ----------------- */
+
 
 	/* InterAction 관련 */
 	PlayerInterActionDialogWidget = Cast<UPlayerInterActionDialogWidget>(GetWidgetFromName(TEXT("WBP_InterAction")));
 	ensureAlways(PlayerInterActionDialogWidget);
-	
+
 	InterActionKeyFWidget = Cast<UInterActionKey_F_ProgressBarUI>(GetWidgetFromName(TEXT("WBP_RoundBoxInterAction_ProgressBar")));
 	ensureAlways(InterActionKeyFWidget);
-	/*-----------------*/
 
+	/* ----------------- */
+
+	/* Inventory 관련 */
+	InventoryUiWidget = Cast<UInventoryWidget>(GetWidgetFromName(TEXT("WBP_Inventory")));
+	ensureAlways(InventoryUiWidget);
+
+
+	/* ---------------*/
 
 #pragma endregion 
 
@@ -69,8 +77,13 @@ void UPlayerUIWidget::NativeConstruct()
 #pragma region UI 렌더링 초기 설정
 	PlayerInterActionDialogWidget->SetVisibility(ESlateVisibility::Collapsed);
 	InterActionKeyFWidget->SetVisibility(ESlateVisibility::Collapsed);
+	InventoryUiWidget->SetVisibility(ESlateVisibility::Collapsed);
 #pragma endregion 
 
+
+#pragma region Inventory Slot 초기화 
+	InventoryUiWidget->Init_Slot();
+#pragma endregion 
 
 }
 
@@ -98,42 +111,39 @@ void UPlayerUIWidget::SetUp_Ui_Hp(int32 _iCurrentHp, int32 _iMaxHp)
 
 void UPlayerUIWidget::SetUp_Ui_Stamina(float _fCurrentStamina, float _fMaxStamina)
 {
-	WidgetStaminaProgressBar->Set_Up_Stamina(_fCurrentStamina, _fMaxStamina);
+	WidgetStaminProgressBar->Set_Up_Stamina(_fCurrentStamina, _fMaxStamina);
 }
 
 void UPlayerUIWidget::UpdateProgressBarStamina(float _fCurrentStamina, float _fMaxStamina)
 {
-	/* Stamina Rendering Opactiy Animation Check */
 
-	if(_fCurrentStamina >= 98.0f)
+	/* Stamina Rendering Opacity Animation Check */
+
+	if (_fCurrentStamina >= 98.0f)
 	{
-		if(WidgetStaminaProgressBar->Get_HasPlayedStaminaAnimation() == false)
+		if (WidgetStaminProgressBar->Get_HasPlayedStaminaAnimation() == false)
 		{
-			WidgetStaminaProgressBar->PlayUiAnimation();
-			WidgetStaminaProgressBar->Set_HasPlayedStaminaAnimation(true); 
+			WidgetStaminProgressBar->PlayUiAnimation();
+			WidgetStaminProgressBar->Set_HasPlayedStaminaAnimation(true);
 		}
 	}
 
-
 	else
 	{
-		WidgetStaminaProgressBar->Set_HasPlayedStaminaAnimation(false);
-		WidgetStaminaProgressBar->ResetRenderOpacity();
+		WidgetStaminProgressBar->Set_HasPlayedStaminaAnimation(false);
+		WidgetStaminProgressBar->ResetRenderOpacity();
 	}
 
+	/* ------------------------------------------- */
 
-	/* ------------------------------------------------- */
-
-
-	WidgetStaminaProgressBar->UpdateProgressBar(_fCurrentStamina, _fMaxStamina);
-
+	WidgetStaminProgressBar->UpdateProgressBar(_fCurrentStamina, _fMaxStamina);
 }
 
-void UPlayerUIWidget::Set_DialogRenderOnOff(EInterActionType _eInterActionType, ESlateVisibility _eSlateVisibility)
+void UPlayerUIWidget::Set_DialogRenderOnOff(EInterActionType _eInterActionKeyType, ESlateVisibility _eSlateVisiblilty)
 {
-	PlayerInterActionDialogWidget->SetVisibility(_eSlateVisibility);
+	PlayerInterActionDialogWidget->SetVisibility(_eSlateVisiblilty);
 
-	switch (_eInterActionType)
+	switch (_eInterActionKeyType)
 	{
 	case EInterActionType::None:
 		break;
@@ -142,11 +152,12 @@ void UPlayerUIWidget::Set_DialogRenderOnOff(EInterActionType _eInterActionType, 
 	case EInterActionType::Chest:
 		break;
 	case EInterActionType::Item:
-		InterActionKeyFWidget->SetVisibility(_eSlateVisibility);
+		InterActionKeyFWidget->SetVisibility(_eSlateVisiblilty);
 		break;
 	default:
 		break;
 	}
+
 }
 
 void UPlayerUIWidget::F_KeyStateUpdate(float _InIncreaseAmount)
@@ -157,6 +168,34 @@ void UPlayerUIWidget::F_KeyStateUpdate(float _InIncreaseAmount)
 void UPlayerUIWidget::Set_F_KeyState(float _InPercent)
 {
 	InterActionKeyFWidget->ReSetPercent_Progressbar(_InPercent);
+}
+
+void UPlayerUIWidget::UpdateInventoryUI(TMap<FName, int32>& _ItemMapContainer)
+{
+
+	InventoryUiWidget->UpdateInventory(_ItemMapContainer);
+
+
+#pragma region 렌더링 관련 
+	RenderInventoryUI();
+#pragma endregion
+
+
+}
+
+void UPlayerUIWidget::RenderInventoryUI()
+{
+	ESlateVisibility CurrentVisiblilty = InventoryUiWidget->GetVisibility();
+
+	if (CurrentVisiblilty == ESlateVisibility::Visible)
+	{
+		InventoryUiWidget->SetVisibility(ESlateVisibility::Hidden);
+	}
+
+	else
+	{
+		InventoryUiWidget->SetVisibility(ESlateVisibility::Visible);
+	}
 }
 
 
