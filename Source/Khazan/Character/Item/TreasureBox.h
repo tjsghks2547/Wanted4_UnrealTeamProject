@@ -19,7 +19,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
@@ -36,6 +36,8 @@ protected:
 	void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
+	void SpawnDropItem();
+
 protected:
 	UPROPERTY(VisibleAnywhere, Category = Collision)
 	TObjectPtr<class UBoxComponent> BoxColliderComponent;
@@ -48,5 +50,12 @@ protected:
 
 	bool HasPlayedAnimation = false;
 
+	/* Drop Item ฐüทร */
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop")
+	TSubclassOf<AActor> DropItemClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop")
+	FVector DropSpawnOffset = FVector(0.f, 0.f, 50.f);
 
 };

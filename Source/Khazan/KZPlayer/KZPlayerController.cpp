@@ -46,7 +46,7 @@ void AKZPlayerController::BeginPlay()
 	if (PlayerCameraManager)
 	{
 		PlayerCameraManager->ViewPitchMin = -90.0f;
-		PlayerCameraManager->ViewPitchMax = 10.0f;
+		PlayerCameraManager->ViewPitchMax = 20.0f;
 
 	}
 

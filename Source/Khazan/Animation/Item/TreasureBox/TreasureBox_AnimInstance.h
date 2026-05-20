@@ -7,11 +7,24 @@
 #include "TreasureBox_AnimInstance.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
 class KHAZAN_API UTreasureBox_AnimInstance : public UAnimInstance
 {
 	GENERATED_BODY()
-	
+
+public:
+	UTreasureBox_AnimInstance();
+
+
+public:
+	void Set_BoxStatue(bool _bOpneClosed) { HasBoxOpend = _bOpneClosed; }
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = STATE)
+	bool HasBoxOpend = false;
+
+private:
+
 };

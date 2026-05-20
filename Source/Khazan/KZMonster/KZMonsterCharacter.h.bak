@@ -6,13 +6,19 @@
 #include "GameFramework/Character.h"
 #include "../Interface/IInteractableTarget.h"
 #include "../Interface/KZDamageInterface.h"
+#include "../Interface/KZAnimationAttackInterface.h"
+#include "../Interface/KZLockOnInterface.h"
 #include "KZMonsterCharacter.generated.h"
+
 
 class AAIController;
 class UBlackboardComponent;
 
+// 델리게이트 선언
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDamaged, AActor*, Attacker);
+
 UCLASS()
-class KHAZAN_API AKZMonsterCharacter : public ACharacter, public IIInteractableTarget, public IKZDamageInterface
+class KHAZAN_API AKZMonsterCharacter : public ACharacter, public IIInteractableTarget, public IKZDamageInterface, public IKZAnimationAttackInterface, public IKZLockOnInterface
 {
 	GENERATED_BODY()
 
@@ -42,10 +48,30 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	class UAnimMontage* BasicAttackMontage;
 
-protected:
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Sensing")
-	//TObjectPtr<APawn> TargetPawn;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	class UAnimMontage* HitMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	class UAnimMontage* DeathMontage;
 	
+	void Dead();
+
+	void PlayDeathMontage();
+
+	void HitMontageEnd(UAnimMontage* TargetMontage, bool bInterrupted);
+
+	bool IsDeathAnimationDone() const { return bDeathAnimationDone;}
+
+
+	// IKZAnimationAttackInterface을(를) 통해 상속됨
+	virtual void AttackCheck() override;
+	
+	virtual void AttackEndCheck() override;
+
+	void LaunchCharacterNotify(float LaunchForce) override;
+
+protected:
+
 	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 	float CurrentMovementSpeed;
 
@@ -60,4 +86,24 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UBlackboardComponent> BlackboardComp;
+	
+		// IKZLockOnInterface을(를) 통해 상속됨
+	bool CanTargetLockOn() override;
+	FVector GetTargetLocation() override;
+
+	// 죽음 이벤트를 위한 플래그
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = State)
+	bool bIsDead = false;
+
+	UPROPERTY()
+	bool bDeathAnimationDone = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hit)
+	TObjectPtr<AActor> LastAttacker;
+
+public:
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnMonsterDamaged OnMonsterDamaged;
+	
+	
 };

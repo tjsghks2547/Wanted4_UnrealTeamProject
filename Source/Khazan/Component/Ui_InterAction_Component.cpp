@@ -20,7 +20,7 @@ void UUi_InterAction_Component::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	
+
 }
 
 

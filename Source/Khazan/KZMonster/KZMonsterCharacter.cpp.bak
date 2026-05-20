@@ -7,6 +7,8 @@
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "../Component/StatComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
 
 // Sets default values
 AKZMonsterCharacter::AKZMonsterCharacter()
@@ -78,9 +80,6 @@ void AKZMonsterCharacter::PlayAttackMontage()
 
 			AnimInstance->Montage_JumpToSection(SectionName, BasicAttackMontage);
 
-
-
-
 			// 몽타주가 끝났을 때 람다함수 바인딩
 			FOnMontageEnded EndDelegate;
 			EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
@@ -133,25 +132,161 @@ void AKZMonsterCharacter::PlayAttackMontage_Internal(UAnimMontage* MontageToPlay
 
 void AKZMonsterCharacter::ProcessDamage(const FDamageData& DamageData)
 {
+
+	if (bIsDead) return;
+
+	LastAttacker = DamageData.Attacker;
+
+	FName SectionName = *FString::Printf(TEXT("Normal_UF")); // Todo: 1은 임시 하드 코딩.
+
 	if (StatComponent)
 	{
 		StatComponent->Apply_Damage(DamageData.DamageAmount);
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Damage"));
 	}
 
-	// 복귀 중 피격 시 재타겟 설정.
-	if (AIC && BlackboardComp)
+	if (StatComponent)
 	{
+		//m_pStatComponent->Apply_Damage(DamageData.DamageAmount);
+		StatComponent->Delegate_OnHpChanged.Broadcast(StatComponent->GetCurrentHp());
 
-		if (BlackboardComp->GetValueAsBool(FName("IsReturning")))
+		// 죽음 함수 호출
+		if (StatComponent->GetCurrentHp() <= 0)
 		{
-			BlackboardComp->SetValueAsBool(FName("IsReturning"), false); // 복귀 중단
+			bIsDead = true;
+			Dead();
+			return;
 		}
 
-		//if (DamageData.Instigator)
-		//{
-		//	BlackboardComp->SetValueAsObject(FName("PlayerPos"), DamageData.Instigator);
-		//	BlackboardComp->SetValueAsBool(Fname("IsReturning"), false); // 복귀 중단
-			//}
+		// 죽지않고 피해를 받은 경우
+		if (HitMontage)
+		{
+			GetCharacterMovement()->StopMovementImmediately();
+			//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+			PlayAnimMontage(HitMontage, 1.0f, SectionName);
+
+			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+			if (AnimInstance)
+			{
+				// 몽타주 종료 이벤트에 등록할 델리게이트 설정.
+				FOnMontageEnded OnMontageEnded;
+				OnMontageEnded.BindUObject(this, &AKZMonsterCharacter::HitMontageEnd);
+
+				// 몽타주 재생 종료 시 발행되는 이벤트에 등록.
+				AnimInstance->Montage_SetEndDelegate(OnMontageEnded, HitMontage);
+			}
+		}
+
+		// 컨트롤러에게 알림
+		if (OnMonsterDamaged.IsBound())
+		{
+			OnMonsterDamaged.Broadcast(DamageData.Attacker);
+		}
 	}
 }
+
+void AKZMonsterCharacter::Dead()
+{
+	// Todo: 이동과 행동을 중지하는 로직. 
+	GetCharacterMovement()->StopMovementImmediately();
+	GetCharacterMovement()->DisableMovement();
+
+	if (AIC)
+	{
+		AIC->SetIgnoreMoveInput(true);
+		AIC->SetIgnoreLookInput(true);
+
+		BlackboardComp->SetValueAsBool(FName("IsDead"), bIsDead);
+
+		PlayAnimMontage(DeathMontage);
+		//UE_LOG(LogTemp, Display, TEXT("Death!"));
+	}
+
+}
+
+void AKZMonsterCharacter::PlayDeathMontage()
+{
+	if (!DeathMontage) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		// 현재는 간단하게 랜덤으로 공격 애니메이션 선택.
+		//int32 RandomIdx = FMath::RandRange(1, 2);
+
+		//FName SectionName = FName(*FString::Printf(TEXT("Batk%d"), RandomIdx));
+
+		AnimInstance->Montage_Play(DeathMontage);
+
+		//AnimInstance->Montage_JumpToSection(SectionName, BasicAttackMontage);
+
+		// 몽타주가 끝났을 때 람다함수 바인딩
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
+			{
+				bDeathAnimationDone = true;
+			});
+
+		// 몽타주가 끝났을 때, 호출될 델리게이트 설정
+		AnimInstance->Montage_SetEndDelegate(EndDelegate, DeathMontage);
+	}
+
+	// 죽는 순산 더 이상 물리 충돌이나 AI 인식이 되지 않도록 설정.
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    // 상단에 추가
+	if (AIC) AIC->StopMovement();
+}
+
+
+void AKZMonsterCharacter::HitMontageEnd(UAnimMontage* TargetMontage, bool bInterrupted)
+{
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+	
+	BlackboardComp->SetValueAsBool(FName("IsHit"), false);
+}
+
+void AKZMonsterCharacter::AttackCheck()
+{
+}
+
+void AKZMonsterCharacter::AttackEndCheck()
+{
+}
+
+void AKZMonsterCharacter::LaunchCharacterNotify(float LaunchForce)
+{
+	if (GetCharacterMovement()->MovementMode == EMovementMode::MOVE_None)
+	{
+		GetCharacterMovement()->MovementMode = EMovementMode::MOVE_Flying;
+	}
+
+	if (LastAttacker)
+	{
+		FVector LaunchDir = GetActorLocation() - LastAttacker->GetActorLocation();
+
+		LaunchDir.Z = 0.0f;
+		LaunchDir.Normalize();
+
+
+
+		LaunchCharacter((LaunchDir * LaunchForce * 3) + FVector(0.0f, 0.0f, 30.0f), true, false);
+	}
+	else
+	{
+		FVector Forward = GetActorForwardVector();
+		LaunchCharacter(-1 * Forward * LaunchForce, true, false);
+	}
+
+	//GetCharacterMovement()->MovementMode = EMovementMode::MOVE_None;
+}
+
+
+//void AKZMonsterCharacter::OnMonsterDamaged(AActor* Attacker)
+//{
+//	if (BlackboardComp)
+//	{
+//		BlackboardComp->SetValueAsBool(FName("IsHit"), true);
+//		BlackboardComp->SetValueAsObject(FName("PlayerPos"), Attacker);
+//		BlackboardComp->SetValueAsBool(FName("IsReturning"), false);
+//	}
+//}
