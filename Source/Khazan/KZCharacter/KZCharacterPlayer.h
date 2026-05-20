@@ -12,6 +12,10 @@
 #include "../Interface/KZLockOnInterface.h"
 #include "KZCharacterPlayer.generated.h"
 
+//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLockOnStateChanged, bool /*bIsLockOn*/)
+//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLockOnStateChanged, bool /**/bIsLockOn)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLockOnStateChanged, bool, bInIsLockedOn);
+
 // 전방선언.
 class UInputAction;
 
@@ -34,6 +38,9 @@ class KHAZAN_API AKZCharacterPlayer :
 public:
 	// Sets default values for this character's properties
 	AKZCharacterPlayer();
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnLockOnStateChanged OnLockOnStateChanged;
 
 protected:
 	// Called when the game starts or when spawned
@@ -233,9 +240,14 @@ protected:
 	float DetectRad;
 
 
+	UFUNCTION()
+	void UpdateMovementForLockOn(bool bInIsLockOn);
 	// IKZLockOnInterface을(를) 통해 상속됨
 	bool CanTargetLockOn() override;
 
 	FVector GetTargetLocation() override;
 
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly , Category = LockOn)
+	bool bIsLockOn = false;
 };

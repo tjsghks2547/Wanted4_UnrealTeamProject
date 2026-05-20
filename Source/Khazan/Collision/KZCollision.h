@@ -9,6 +9,11 @@
 #define C_CHANNEL_PLAYER ECC_GameTraceChannel1
 #define TRACE_ATTACK ECC_GameTraceChannel3
 
+UENUM(BlueprintType)
+enum class EAttackSwingDir : uint8 { U, D, L, R, None };
+
+UENUM(BlueprintType)
+enum class EHitIntensity : uint8 { Weak, Strong, Normal, None };
 
 USTRUCT(BlueprintType)
 struct FDamageData 
@@ -16,19 +21,14 @@ struct FDamageData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameData)
-	float DamageAmount;
+	float DamageAmount = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameData)
 
-	AActor* Attacker;
+	AActor* Attacker = nullptr;
 	
-	EHitIntensity Intensity;
-	EAttackSwingDir SwingDir;
+	EHitIntensity Intensity = EHitIntensity::None;
+	EAttackSwingDir SwingDir = EAttackSwingDir::None;
 	//EAttackType AttackType;
 	//FVector HitLocation;
 };
 
-UENUM(BlueprintType)
-enum class EAttackSwingDir : uint8 {U, D, L ,R};
-
-UENUM(BlueprintType)
-enum class EHitIntensity : uint8 {Weak, Strong, Normal};
