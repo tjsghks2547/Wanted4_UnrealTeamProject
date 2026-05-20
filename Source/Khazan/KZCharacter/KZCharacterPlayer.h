@@ -79,6 +79,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = UI)
 	TObjectPtr<class UUi_InterAction_Component> UiComponent; 
 
+	// 5_20 선환 추가 
+	UPROPERTY(VisibleAnywhere, Category = Component)
+	TObjectPtr<class UInventoryComponent> InventoryComponent;
+
+
 	UPROPERTY(EditAnywhere, Category = Stat)
 	float SprintStaminaConsumptionRate = 5.0f;
 

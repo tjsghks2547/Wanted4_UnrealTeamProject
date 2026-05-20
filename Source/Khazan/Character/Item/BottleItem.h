@@ -4,16 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "TreasureBox.generated.h"
+#include "BottleItem.generated.h"
 
 UCLASS()
-class KHAZAN_API ATreasureBox : public ACharacter
+class KHAZAN_API ABottleItem : public ACharacter
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this character's properties
-	ATreasureBox();
+	ABottleItem();
 
 protected:
 	// Called when the game starts or when spawned
@@ -26,6 +26,7 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+
 protected:
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -36,26 +37,19 @@ protected:
 	void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	void SpawnDropItem();
+
 
 protected:
-	UPROPERTY(VisibleAnywhere, Category = Collision)
-	TObjectPtr<class UBoxComponent> BoxColliderComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Component")
+	TObjectPtr<class UItemComponent> ItemComponent;
 
-	UPROPERTY(VisibleAnywhere, Category = OverlapActor)
-	TArray<AActor*> OverlappingActors;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	TObjectPtr<class UProjectileMovementComponent> ProjectileMovement;
 
-	UPROPERTY(EditAnywhere, Category = Animation)
-	TObjectPtr<class UAnimMontage> OpenBoxMontage;
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<class UTexture2D> ItemUiTextrue2D;
 
-	bool HasPlayedAnimation = false;
-
-	/* Drop Item ฐüทร */
-protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop")
-	TSubclassOf<AActor> DropItemClass;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop")
-	FVector DropSpawnOffset = FVector(0.f, 0.f, 50.f);
-
+	bool HasPickUp = false;
+public:
+	void StartDropMotion(const FVector& Direction);
 };

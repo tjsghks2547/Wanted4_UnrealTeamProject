@@ -10,6 +10,7 @@
 #pragma region 선환 헤더 추가 
 #include "Component/StatComponent.h"
 #include "Component/Ui_InterAction_Component.h"
+#include "Component/InventoryComponent.h"
 #include "UI/PlayerUIWidget.h"
 #include "Types/InterActionType.h"
 #pragma endregion 
@@ -47,6 +48,7 @@ AKZCharacterPlayer::AKZCharacterPlayer()
 	// Actor Component
 	StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
 	UiComponent = CreateDefaultSubobject<UUi_InterAction_Component>(TEXT("UiComponent"));
+	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("UiInventory"));
 	// Scene Component
 
 
@@ -178,6 +180,10 @@ void AKZCharacterPlayer::SetupPlayerUiWidget(UPlayerUIWidget* _InPlayerUiWidget)
 		UiComponent->Delegate_OnInterActionFKey_SetStateChanged.AddUObject(_InPlayerUiWidget, &UPlayerUIWidget::Set_F_KeyState);
 #pragma endregion 
 
+
+#pragma region InterAction Inventory 관련
+		UiComponent->Delegate_InventoryOpen.AddUObject(_InPlayerUiWidget, &UPlayerUIWidget::UpdateInventoryUI);
+#pragma endregion 
 	}
 }
 
@@ -292,7 +298,7 @@ void AKZCharacterPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 		EnhancedInputComponent->BindAction(
 			UiTestAction,
-			ETriggerEvent::Triggered,
+			ETriggerEvent::Started,
 			this,
 			&AKZCharacterPlayer::UiTest
 		);
@@ -536,23 +542,27 @@ void AKZCharacterPlayer::UiTest()
 
 
 	// 5_18 상호작용 UI 테스터 코드 
-	const float DeltaTime = GetWorld()->GetDeltaSeconds();
+	//const float DeltaTime = GetWorld()->GetDeltaSeconds();
+	//
+	///*F키 상호작용 테스트 코드*/
+	//switch (InterActionType)
+	//{
+	//case EInterActionType::None:
+	//	break;
+	//case EInterActionType::Dialog:
+	//	break;
+	//case EInterActionType::Chest:
+	//	break;
+	//case EInterActionType::Item:
+	//	UiComponent->Delegate_OnInterActionFKeyStateChanged.Broadcast(DeltaTime);
+	//	break;
+	//default:
+	//	break;
+	//}
 
-	/*F키 상호작용 테스트 코드*/
-	switch (InterActionType)
-	{
-	case EInterActionType::None:
-		break;
-	case EInterActionType::Dialog:
-		break;
-	case EInterActionType::Chest:
-		break;
-	case EInterActionType::Item:
-		UiComponent->Delegate_OnInterActionFKeyStateChanged.Broadcast(DeltaTime);
-		break;
-	default:
-		break;
-	}
+
+	// 5_20일 인벤토리 테스트
+	UiComponent->Delegate_InventoryOpen.Broadcast(InventoryComponent->Get_ItemMap());
 }
 
 void AKZCharacterPlayer::Jump()

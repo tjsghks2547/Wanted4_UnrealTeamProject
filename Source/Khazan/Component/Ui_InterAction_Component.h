@@ -7,18 +7,20 @@
 #include "Ui_InterAction_Component.generated.h"
 
 enum class EInterActionType : uint8;
+using FInventoryItemMap = TMap<FName, int32>&;
+
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnDialogUiRenderDelegate/* 델리게이트 이름*/, EInterActionType/*해당 UI Key타입 */, ESlateVisibility /* 렌더링 속성 */)
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnInterActionFKeyStateChanged /* 델리게이트 이름*/, float /*해당 Key 증가량 타입*/ )
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnInterActionFKeyStateChanged /* 델리게이트 이름*/, float /*해당 Key 증가량 타입*/)
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnInterActionFKey_SetStateChanged /* 델리게이트 이름*/, float /*해당 Key 증가량 타입*/)
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnInventoryOpen/* 델리게이트 이름*/, FInventoryItemMap/*현재 인벤토리 상태 전달*/);
 
-
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class KHAZAN_API UUi_InterAction_Component : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
+public:
 	// Sets default values for this component's properties
 	UUi_InterAction_Component();
 
@@ -26,18 +28,18 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-public:	
+public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 
 public:
-	FOnDialogUiRenderDelegate Delegate_OnDialogRender; 
+	FOnDialogUiRenderDelegate Delegate_OnDialogRender;
 	FOnInterActionFKeyStateChanged Delegate_OnInterActionFKeyStateChanged;
 	FOnInterActionFKey_SetStateChanged Delegate_OnInterActionFKey_SetStateChanged;
+	FOnInventoryOpen Delegate_InventoryOpen;
 
-
-protected: 
+protected:
 	UPROPERTY()
 	float CurrentInterActionProgressPercent;
 

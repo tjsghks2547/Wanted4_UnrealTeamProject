@@ -3,3 +3,6 @@
 
 #include "Animation/Item/TreasureBox/TreasureBox_AnimInstance.h"
 
+UTreasureBox_AnimInstance::UTreasureBox_AnimInstance()
+{
+}
