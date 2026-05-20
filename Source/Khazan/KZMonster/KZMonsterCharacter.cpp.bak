@@ -80,6 +80,9 @@ void AKZMonsterCharacter::PlayAttackMontage()
 
 			AnimInstance->Montage_JumpToSection(SectionName, BasicAttackMontage);
 
+
+
+
 			// 몽타주가 끝났을 때 람다함수 바인딩
 			FOnMontageEnded EndDelegate;
 			EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
@@ -280,6 +283,15 @@ void AKZMonsterCharacter::LaunchCharacterNotify(float LaunchForce)
 	//GetCharacterMovement()->MovementMode = EMovementMode::MOVE_None;
 }
 
+bool AKZMonsterCharacter::CanTargetLockOn()
+{
+	return true;
+}
+
+FVector AKZMonsterCharacter::GetTargetLocation()
+{
+	return GetActorLocation();
+}
 
 //void AKZMonsterCharacter::OnMonsterDamaged(AActor* Attacker)
 //{

@@ -199,7 +199,7 @@ void AKZCharacterBase::ProcessAttackCommand(EAttackType AttackType)
 	if (!AnimInstance) return;
 
 	// 피격 중이거나 회피 중일 때는 공격 불가
-	if (AnimInstance->Montage_IsPlaying(HitMontage) || AnimInstance->Montage_IsPlaying(DodgeMontage))
+	if (AnimInstance->Montage_IsPlaying(HitMontage) || AnimInstance->Montage_IsPlaying(DodgeMontage) || AnimInstance->Montage_IsPlaying(JumpMontage))
 	{
 		return;
 	}
