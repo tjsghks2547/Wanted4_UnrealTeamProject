@@ -44,6 +44,7 @@ public:
 	void UpdateInventoryUI(TMap<FName, int32>& _ItemMapContainer);
 	void RenderInventoryUI();
 
+
 protected:
 #pragma region Hp UI 
 	TObjectPtr<class UPlayerHpProgressBarWidget> WidgetHpProgressBar;
