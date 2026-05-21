@@ -93,6 +93,13 @@ AKZCharacterBase::AKZCharacterBase()
 		HitMontage = HitMontageRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> JumpMontageRef(
+		TEXT("/Game/Khazan_anim/JumpAndDodge/AM_Jump.AM_Jump")
+	);
+	if (JumpMontageRef.Succeeded())
+	{
+		JumpMontage = JumpMontageRef.Object;
+	}
 }
 
 // Called when the game starts or when spawned
@@ -140,7 +147,7 @@ void AKZCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void AKZCharacterBase::AttackCheck()
 {
-	if (bNextCombo)
+	if (bNextCombo && CurrentCombo < MaxCombo)
 	{
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (AnimInstance)
@@ -178,6 +185,9 @@ void AKZCharacterBase::AttackCheck()
 			}
 			bNextCombo = false;
 			NextAttackType = EAttackType::None;
+
+			// 콤보로 넘어갈 때 이동 모드를 다시 None으로 설정 (공격 중 이동 방지)
+			GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 		}
 	}
 }
@@ -185,6 +195,27 @@ void AKZCharacterBase::AttackCheck()
 // 약 or 강공격 시작 함수.
 void AKZCharacterBase::ProcessAttackCommand(EAttackType AttackType)
 {
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance) return;
+
+	// 피격 중이거나 회피 중일 때는 공격 불가
+	if (AnimInstance->Montage_IsPlaying(HitMontage) || AnimInstance->Montage_IsPlaying(DodgeMontage) || AnimInstance->Montage_IsPlaying(JumpMontage))
+	{
+		return;
+	}
+
+	// 막타(3타) 이거나 차지 어택 중에는 다음 콤보 예약을 받지 않음
+	bool bIsChargeAtk = false;
+	if (WeakAttackMontage)
+	{
+		bIsChargeAtk = AnimInstance->Montage_GetCurrentSection(WeakAttackMontage).ToString().Contains(TEXT("ChargeWeak"));
+	}
+
+	if (CurrentCombo >= MaxCombo || bIsChargeAtk)
+	{
+		return;
+	}
+
 	float RequiredStamina = (AttackType == EAttackType::Strong) ? 30.0f : 20.0f;
 	// 약공격과 강공격의 입력을 받아서 현재 입력 혹은 다음 입력의 타입을 설정.
 	if (CurrentAttackType == EAttackType::None)
@@ -197,7 +228,6 @@ void AKZCharacterBase::ProcessAttackCommand(EAttackType AttackType)
 
 		}
 
-
 		CurrentAttackType = AttackType;
 		if (CurrentCombo == 0 && AttackType == EAttackType::Weak)
 		{
@@ -209,12 +239,19 @@ void AKZCharacterBase::ProcessAttackCommand(EAttackType AttackType)
 			StrongAttackBegin();
 		}
 	}
-	
+
 	else if (CurrentAttackType == EAttackType::Strong || CurrentAttackType == EAttackType::Weak)
 	{
 		NextAttackType = AttackType;
 		bNextCombo = true;
+
+		// 후딜레이 구간(MOVE_Walking)에서 공격 입력 시 즉시 다음 콤보 실행
+		if (GetCharacterMovement()->MovementMode == EMovementMode::MOVE_Walking)
+		{
+			AttackCheck();
+		}
 	}
+
 
 }
 
@@ -304,35 +341,82 @@ void AKZCharacterBase::StrongAttackBegin()
 	}
 }
 
-// 공격 종료 후에 실행되는 함수,
+// 공격 종료 후에 실행되는 함수
 void AKZCharacterBase::AttackActionEnd(UAnimMontage* TargetMontage, bool bInterrupted)
 {
+	// 몽타주가 인터럽트(피격 등) 되었을 때는 몽타주를 중단시키지 않고 상태만 초기화
+	if (bInterrupted)
+	{
+		CurrentCombo = 0;
+		CurrentAttackType = EAttackType::None;
+		NextAttackType = EAttackType::None;
+		bNextCombo = false;
+		SetStaminaRegenBlock(false);
+		return;
+	}
+
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	// 몽타주 실행중이라면 리셋하지않음.
-	if (!AnimInstance && AnimInstance->Montage_IsPlaying(WeakAttackMontage) || AnimInstance->Montage_IsPlaying(StrongAttackMontage))
+	if (CurrentAttackType == EAttackType::None) return;
+
+	// 다른 공격 몽타주가 실행 중이라면 리셋하지 않음
+	if (AnimInstance && (AnimInstance->Montage_IsPlaying(WeakAttackMontage) || AnimInstance->Montage_IsPlaying(StrongAttackMontage)))
 	{
 		return;
 	}
 	
+	ForceEndAttackState();
+}
+
+void AKZCharacterBase::AttackEndCheck()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	bool bIsChargeAtk = false;
+	if (AnimInstance && WeakAttackMontage)
+	{
+		bIsChargeAtk = AnimInstance->Montage_GetCurrentSection(WeakAttackMontage).ToString().Contains(TEXT("ChargeWeak"));
+	}
+
+	// 막타(3타) 이거나 차지 어택인 경우, 혹은 강공격인 경우 즉시 상태 종료
+	if (CurrentCombo >= MaxCombo || bIsChargeAtk || CurrentAttackType == EAttackType::Strong)
+	{
+		ForceEndAttackState();
+		return;
+	}
+
+	// 이동만 허용하고 상태는 유지 (콤보 입력을 위해)
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+	
+	// 만약 이미 예약된 콤보가 있다면 즉시 실행
+	if (bNextCombo)
+	{
+		AttackCheck();
+	}
+}
+
+void AKZCharacterBase::ForceEndAttackState()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		// 모든 몽타주(nullptr)가 아닌, 공격용 몽타주만 골라서 중단 (피격 애니메이션 보호)
+		if (WeakAttackMontage) AnimInstance->Montage_Stop(0.15f, WeakAttackMontage);
+		if (StrongAttackMontage) AnimInstance->Montage_Stop(0.15f, StrongAttackMontage);
+	}
+
 	CurrentCombo = 0;
-	bNextCombo = false;
 	CurrentAttackType = EAttackType::None;
 	NextAttackType = EAttackType::None;
-	// 이동 모드 복구.
-	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
-
+	bNextCombo = false;
+	
+	// 이동 모드 복구 (공격 중이었다면)
+	if (GetCharacterMovement()->MovementMode == EMovementMode::MOVE_None)
+	{
+		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+	}
 	SetStaminaRegenBlock(false);
 }
 
-// 공격이 끝났는지 확인하는 함수.
-void AKZCharacterBase::AttackEndCheck()
-{
-
-	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
-	
-}
-
-// 콤보에 따라 플레이어를 앞으로 이동.
+// 피격 시 피격 애니메이션에서 설정한 노티파이로 캐릭터가 뒤로 밀림.
 void AKZCharacterBase::LaunchCharacterNotify(float LaunchForce)
 {
 	if (GetCharacterMovement()->MovementMode == EMovementMode::MOVE_None)

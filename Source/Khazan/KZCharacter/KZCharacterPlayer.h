@@ -250,4 +250,14 @@ protected:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly , Category = LockOn)
 	bool bIsLockOn = false;
+
+
+protected:
+	// 저스트 가드 이펙트
+	UPROPERTY(EditAnyWhere, Category = Effect)
+	TObjectPtr<class UNiagaraSystem> ParryEffect;
+
+	// 가드 이펙트
+	UPROPERTY(EditAnyWhere, Category = Effect)
+	TObjectPtr<class UNiagaraSystem> GuardEffect;
 };

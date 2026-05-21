@@ -17,6 +17,9 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/OverlapResult.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+
 
 // Sets default values
 AKZCharacterPlayer::AKZCharacterPlayer()
@@ -139,7 +142,21 @@ AKZCharacterPlayer::AKZCharacterPlayer()
 		LockOnAction = LockOnActionRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> ParryEffectRef{
+	TEXT("/Game/Effect/Parry_Effect.Parry_Effect")
+	};
+	if (ParryEffectRef.Succeeded())
+	{
+		ParryEffect = ParryEffectRef.Object;
+	}
 
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> GuardEffectRef{
+	TEXT("/Game/Effect/Guard_Effect.Guard_Effect")
+	};
+	if (GuardEffectRef.Succeeded())
+	{
+		GuardEffect = GuardEffectRef.Object;
+	}
 
 }
 
@@ -661,6 +678,13 @@ void AKZCharacterPlayer::StopGuard(const FInputActionValue& value)
 
 void AKZCharacterPlayer::LockOn(const FInputActionValue& value)
 {
+	if (LockOnTarget)
+	{
+		LockOnTarget = nullptr;
+		OnLockOnStateChanged.Broadcast(false);
+		return;
+	}
+
 	TArray<FOverlapResult> OverlapResults;
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(LockOn), true, this);
 	FVector MyLoc = GetActorLocation();
@@ -715,6 +739,7 @@ void AKZCharacterPlayer::LockOn(const FInputActionValue& value)
 		LockOnTarget = BestTarget;
 		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("TargetFound"));
 		UE_LOG(LogTemp, Log, TEXT("Target Found: %s"), *BestTarget->GetName());
+		OnLockOnStateChanged.Broadcast(true);
 	}
 }
 
@@ -725,16 +750,19 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 
 	ForceEndAttackState();
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	// 공격하고 있는 대상을 가져옴.
+	LastAttacker = DamageData.Attacker;
 	// 가드 상태라면 데미지 반감.
 	if (bIsGuarding && StatComponent)
 	{
 		float CurrentTime = GetWorld()->GetTimeSeconds();
 		float GuardDuration = CurrentTime - GuardStartTime;
+		GetCharacterMovement()->StopMovementImmediately();
 		// 저스트 가드 성공 시 넉백만 있고, 패널티 X
 		if (GuardDuration <= JustGuardWindow)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("Just Guard!!"));
-			LaunchCharacterNotify(700.0f);
+			LaunchCharacterNotify(500.0f);
 			return;
 		}
 		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("Guard!!"));
@@ -744,14 +772,15 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 		{
 			bIsDead = true;
 			Dead();
+			OnLockOnStateChanged.Broadcast(false);
 			return;
 		}
 		LaunchCharacterNotify(500.0f);
 		return;
 	}
 
-	// 공격하고 있는 대상을 가져옴.
-	LastAttacker = DamageData.Attacker;
+
+	
 	//float FinalDamage = DamageData.DamageAmount;
 
 	// 공격하고 있는 대상의 위치와 데미지에 따라서 피격 애니메이션 재생.
@@ -876,6 +905,22 @@ void AKZCharacterPlayer::Render_InterActionUi(EInterActionType _Tag, ESlateVisib
 void AKZCharacterPlayer::Ui_Key_State_Reset()
 {
 	UiComponent->Delegate_OnInterActionFKey_SetStateChanged.Broadcast(0.0f);
+}
+
+
+void AKZCharacterPlayer::UpdateMovementForLockOn(bool bInIsLockOn)
+{
+	bIsLockOn = bInIsLockOn;
+	if (bIsLockOn)
+	{
+		bUseControllerRotationYaw = true;
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+	}
+	else
+	{
+		bUseControllerRotationYaw = false;
+		GetCharacterMovement()->bOrientRotationToMovement = true;
+	}
 }
 
 bool AKZCharacterPlayer::CanTargetLockOn()

@@ -503,6 +503,7 @@ void AKZCharacterBase::PlayDodgeMontage(FName Section)
 {
 	if (DodgeMontage && bIsDodge == false)
 	{
+		ForceEndAttackState();
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		bIsDodge = true;
 		PlayAnimMontage(DodgeMontage, 1.0f, Section);
