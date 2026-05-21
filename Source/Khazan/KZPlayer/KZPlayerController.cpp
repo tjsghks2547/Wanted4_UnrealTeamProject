@@ -3,42 +3,51 @@
 
 #include "KZPlayerController.h"
 #include "UI/PlayerUIWidget.h"
+#include "InputMappingContext.h"
+#include "HUD/IH_HUD.h"
+#include "EnhancedInputSubsystems.h"
 
 AKZPlayerController::AKZPlayerController()
 {
 
-// 5_11 선환 추가
-#pragma region UI Widegt
-	static ConstructorHelpers::FClassFinder<UPlayerUIWidget> PlayerWidgetRef(TEXT("/Game/UI/WBP_MainUI.WBP_MainUI_C")); 
-	
-	if(PlayerWidgetRef.Succeeded())
+#pragma region IMC Mapping Context
+	static ConstructorHelpers::FObjectFinder<UInputMappingContext> InputMappingContextRef(TEXT("/Game/Khazan/Input/IMC_Khazan.IMC_Khazan"));
+
+	if (InputMappingContextRef.Object != NULL)
 	{
-		PlayerUiWidgetClass = PlayerWidgetRef.Class;
+		InputMappingContext = InputMappingContextRef.Object;
 	}
 #pragma endregion 
 // ---------------------------------- // 
+
+
+
+#pragma region UI IMC Mapping Context
+	static ConstructorHelpers::FObjectFinder<UInputMappingContext> InputUIMappingContextRef(TEXT("/Game/Khazan/Input/IMC_UI.IMC_UI"));
+
+	if (InputUIMappingContextRef.Object != NULL)
+	{
+		InputUiMappingContext = InputUIMappingContextRef.Object;
+	}
+#pragma endregion 
 
 }
 
 void AKZPlayerController::BeginPlay()
 {
-	// 5_11 선환 추가 
-
 	Super::BeginPlay();
 
-	FInputModeGameOnly GameOnlyInputMode; // 입력 모드 설정 ( 추후 수정 예정 ) 
+	// 입력 모드 설정.
+	// 게임 시작되면 뷰포트로 바로 입력 되도록.
+	FInputModeGameOnly GameOnlyInputMode;
 	SetInputMode(GameOnlyInputMode);
 
 
-	// 위젯 생성
-#pragma region 위젯 생성 및 초기화 
-	m_pPlayerUiWidget = CreateWidget<UPlayerUIWidget>(this, PlayerUiWidgetClass);
 
-	// 해당 UI 화면에 렌더링 
-	if (m_pPlayerUiWidget != NULL)
-	{
-		m_pPlayerUiWidget->AddToViewport();
-	}
+
+#pragma region HUD 생성
+
+	HUD = GetHUD<AIH_HUD>();
 
 #pragma endregion 
 	// ---------------------------------- // 
@@ -51,4 +60,36 @@ void AKZPlayerController::BeginPlay()
 	}
 
 
+}
+
+
+void AKZPlayerController::Open_Inventory(TMap<FName, int32>& _ItemMapContainer)
+{
+	HUD->OpenInventoryWidget(_ItemMapContainer);
+}
+
+void AKZPlayerController::Set_InputUi_IMC()
+{
+
+	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+
+	// 게임 → UI
+	Subsystem->RemoveMappingContext(InputMappingContext);
+	Subsystem->AddMappingContext(InputUiMappingContext, 0);
+
+	FInputModeGameAndUI GameAndUIInputMode;
+	SetInputMode(GameAndUIInputMode);
+}
+
+void AKZPlayerController::Set_InputGame_IMC()
+{
+	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+
+
+	// UI → 게임
+	Subsystem->RemoveMappingContext(InputUiMappingContext);
+	Subsystem->AddMappingContext(InputMappingContext, 0);
+
+	FInputModeGameOnly GameOnlyInputMode;
+	SetInputMode(GameOnlyInputMode);
 }

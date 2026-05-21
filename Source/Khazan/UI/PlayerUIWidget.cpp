@@ -13,6 +13,8 @@
 #include "InterActionKey_F_ProgressBarUI.h"
 #include "Types/InterActionType.h"
 #include "InventoryWidget.h"
+#include "KZPlayer/KZPlayerController.h"
+
 
 
 UPlayerUIWidget::UPlayerUIWidget(const FObjectInitializer& ObjectInitializer)
@@ -56,9 +58,11 @@ void UPlayerUIWidget::NativeConstruct()
 	/* ----------------- */
 
 	/* Inventory 관련 */
-	InventoryUiWidget = Cast<UInventoryWidget>(GetWidgetFromName(TEXT("WBP_Inventory")));
-	ensureAlways(InventoryUiWidget);
+	//InventoryUiWidget = Cast<UInventoryWidget>(GetWidgetFromName(TEXT("WBP_Inventory")));
+	//ensureAlways(InventoryUiWidget);
 
+	InventoryUiWidget = Cast<UInventoryWidget>(GetWidgetFromName(TEXT("WBP_Inventory_New")));
+	ensureAlways(InventoryUiWidget);
 
 	/* ---------------*/
 
@@ -82,7 +86,7 @@ void UPlayerUIWidget::NativeConstruct()
 
 
 #pragma region Inventory Slot 초기화 
-	InventoryUiWidget->Init_Slot();
+	//InventoryUiWidget->Init_Slot();
 #pragma endregion 
 
 }
@@ -190,12 +194,26 @@ void UPlayerUIWidget::RenderInventoryUI()
 	if (CurrentVisiblilty == ESlateVisibility::Visible)
 	{
 		InventoryUiWidget->SetVisibility(ESlateVisibility::Hidden);
+
+		Cast<AKZPlayerController>(GetOwningPlayer())->Set_InputGame_IMC();
+		GetOwningPlayer()->bShowMouseCursor = false;
+
 	}
 
 	else
 	{
 		InventoryUiWidget->SetVisibility(ESlateVisibility::Visible);
+
+		Cast<AKZPlayerController>(GetOwningPlayer())->Set_InputUi_IMC();
+		GetOwningPlayer()->bShowMouseCursor = true;
+
 	}
+
+	//FInputModeUIOnly UIOnlyInputMode;
+	//GetOwningPlayer()->SetInputMode(UIOnlyInputMode);
+
+	//UIOnlyInputMode.SetWidgetToFocus(InventoryUiWidget->TakeWidget());  // ← 포커스 지정!
+	//GetOwningPlayer()->SetInputMode(UIOnlyInputMode);
 }
 
 

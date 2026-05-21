@@ -13,9 +13,14 @@
 #include "Component/InventoryComponent.h"
 #include "UI/PlayerUIWidget.h"
 #include "Types/InterActionType.h"
+#include "KZPlayer/KZPlayerController.h"
+#include "HUD/IH_HUD.h"
+#include "Player/IHPlayerState.h"
+
 #pragma endregion 
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/OverlapResult.h"
+#include "Kismet/KismetMathLibrary.h"
 
 // Sets default values
 AKZCharacterPlayer::AKZCharacterPlayer()
@@ -114,12 +119,12 @@ AKZCharacterPlayer::AKZCharacterPlayer()
 	}
 
 	// 5_11 선환 추가 
-	static ConstructorHelpers::FObjectFinder<UInputAction> UiTestActionRef{
-		TEXT("/Game/Input/Actions/IA_UiTest.IA_UiTest")
+	static ConstructorHelpers::FObjectFinder<UInputAction> InventroyOpenActionRef{
+		TEXT("/Game/Khazan/Input/Action/IA_InventoryOpen.IA_InventoryOpen")
 	};
-	if (UiTestActionRef.Succeeded())
+	if (InventroyOpenActionRef.Succeeded())
 	{
-		UiTestAction = UiTestActionRef.Object;
+		InventoryOpenAction = InventroyOpenActionRef.Object;
 	}
 
 	static ConstructorHelpers::FObjectFinder<UInputAction> GuardActionRef{
@@ -138,8 +143,24 @@ AKZCharacterPlayer::AKZCharacterPlayer()
 		LockOnAction = LockOnActionRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> Ui_InventoryActionRef{
+		TEXT("/Game/Khazan/Input/UI/IA_Inventory.IA_Inventory")
+	};
+	if (Ui_InventoryActionRef.Succeeded())
+	{
+		Ui_Inventory = Ui_InventoryActionRef.Object;
+	}
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> Ui_InterActionRef{
+		TEXT("/Game/Khazan/Input/Action/IA_InterAction.IA_InterAction")
+	};
+	if (Ui_InterActionRef.Succeeded())
+	{
+		Ui_InterAction = Ui_InterActionRef.Object;
+	}
+	
 
+	
 }
 
 // Called when the game starts or when spawned
@@ -149,6 +170,7 @@ void AKZCharacterPlayer::BeginPlay()
 
 	SetCharacterControl();
 	
+	OnLockOnStateChanged.AddDynamic(this, &AKZCharacterPlayer::UpdateMovementForLockOn);
 }
 
 
@@ -192,6 +214,34 @@ void AKZCharacterPlayer::SetupPlayerUiWidget(UPlayerUIWidget* _InPlayerUiWidget)
 void AKZCharacterPlayer::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// 락온 타겟이 죽은 경우 자동으로 락온이 풀림.
+	if (LockOnTarget)
+	{
+		IKZLockOnInterface* LockOnInterface = Cast<IKZLockOnInterface>(LockOnTarget);
+
+		if (LockOnInterface == nullptr || !LockOnInterface->CanTargetLockOn())
+		{
+			LockOnTarget = nullptr;
+			OnLockOnStateChanged.Broadcast(false);
+			return;
+		}
+
+		// 회전값 계산.
+		// 락온 타겟의 위치를 기준으로 z 방향으로 + 50만큼 올림 -> 타겟의 머리 쪽을 보도록함.
+		FVector TargetLoc = LockOnTarget->GetActorLocation() + FVector(0, 0, -250.0f);
+		FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), TargetLoc);
+
+		// 컨트롤러의 회전값 가져오기.
+		FRotator CurrentControlRotation = GetControlRotation();
+
+		FRotator TargetRotation = FMath::RInterpTo(CurrentControlRotation, LookAtRotation, DeltaTime, 10.0f);
+
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			PC->SetControlRotation(TargetRotation);
+		}
+	}
 
 	if (bIsSprint && GetVelocity().Size() > 0)
 	{
@@ -297,11 +347,29 @@ void AKZCharacterPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		);
 
 		EnhancedInputComponent->BindAction(
-			UiTestAction,
+			InventoryOpenAction,
 			ETriggerEvent::Started,
 			this,
-			&AKZCharacterPlayer::UiTest
+			&AKZCharacterPlayer::InventoryOpen
 		);
+
+		EnhancedInputComponent->BindAction(
+			Ui_Inventory,
+			ETriggerEvent::Started,
+			this,
+			&AKZCharacterPlayer::Inventory_Close
+		);
+
+		EnhancedInputComponent->BindAction(
+			Ui_InterAction,
+			ETriggerEvent::Triggered,
+			this,
+			&AKZCharacterPlayer::InterAction
+		);
+
+
+
+
 		EnhancedInputComponent->BindAction(
 			LockOnAction,
 			ETriggerEvent::Started,
@@ -418,14 +486,18 @@ void AKZCharacterPlayer::StopSprint(const FInputActionValue& value)
 
 void AKZCharacterPlayer::Look(const FInputActionValue& value)
 {
-	// 입력값 가져오기.
-	FVector2D RotationValue = value.Get<FVector2D>();
+	// 락온 시 플레이어의 입력에 의한 카메라 이동 방지.
+	if (!bIsLockOn)
+	{
+		// 입력값 가져오기.
+		FVector2D RotationValue = value.Get<FVector2D>();
+		// 회전 처리
+		AddControllerYawInput(RotationValue.X * 0.7);
 
-	// 회전 처리
-	AddControllerYawInput(RotationValue.X * 0.7);
+		// 마우스를 올리면 위로 보도록 -1을 곱함.
+		AddControllerPitchInput((RotationValue.Y * -1) * 0.5);
+	}
 
-	// 마우스를 올리면 위로 보도록 -1을 곱함.
-	AddControllerPitchInput((RotationValue.Y * -1) * 0.5);
 }
 
 // 회피
@@ -533,7 +605,7 @@ void AKZCharacterPlayer::StrongAttack(const FInputActionValue& value)
 
 
 // 5_11 선환 추가 
-void AKZCharacterPlayer::UiTest()
+void AKZCharacterPlayer::InventoryOpen()
 {
 	/* hp 관련 테스트 코드(5_11 선환) */
 	//m_pStatComponent->Apply_Damage(50);
@@ -562,8 +634,17 @@ void AKZCharacterPlayer::UiTest()
 
 
 	// 5_20일 인벤토리 테스트
-	UiComponent->Delegate_InventoryOpen.Broadcast(InventoryComponent->Get_ItemMap());
+	//UiComponent->Delegate_InventoryOpen.Broadcast(InventoryComponent->Get_ItemMap());
+
+
+
+	AKZPlayerController* pPlayerController = Cast<AKZPlayerController>(GetController());
+	AIHPlayerState* pPlayerState = GetPlayerState<AIHPlayerState>();
+
+	pPlayerController->Open_Inventory(pPlayerState->Get_InventoryComponent()->Get_ItemMap());
+
 }
+
 
 void AKZCharacterPlayer::Jump()
 {
@@ -627,6 +708,13 @@ void AKZCharacterPlayer::StopGuard(const FInputActionValue& value)
 
 void AKZCharacterPlayer::LockOn(const FInputActionValue& value)
 {
+	if (LockOnTarget)
+	{
+		LockOnTarget = nullptr;
+		OnLockOnStateChanged.Broadcast(false);
+		return;
+	}
+
 	TArray<FOverlapResult> OverlapResults;
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(LockOn), true, this);
 	FVector MyLoc = GetActorLocation();
@@ -681,6 +769,7 @@ void AKZCharacterPlayer::LockOn(const FInputActionValue& value)
 		LockOnTarget = BestTarget;
 		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("TargetFound"));
 		UE_LOG(LogTemp, Log, TEXT("Target Found: %s"), *BestTarget->GetName());
+		OnLockOnStateChanged.Broadcast(true);
 	}
 }
 
@@ -691,16 +780,19 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 
 	ForceEndAttackState();
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	// 공격하고 있는 대상을 가져옴.
+	LastAttacker = DamageData.Attacker;
 	// 가드 상태라면 데미지 반감.
 	if (bIsGuarding && StatComponent)
 	{
 		float CurrentTime = GetWorld()->GetTimeSeconds();
 		float GuardDuration = CurrentTime - GuardStartTime;
+		GetCharacterMovement()->StopMovementImmediately();
 		// 저스트 가드 성공 시 넉백만 있고, 패널티 X
 		if (GuardDuration <= JustGuardWindow)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("Just Guard!!"));
-			LaunchCharacterNotify(700.0f);
+			LaunchCharacterNotify(500.0f);
 			return;
 		}
 		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("Guard!!"));
@@ -710,14 +802,15 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 		{
 			bIsDead = true;
 			Dead();
+			OnLockOnStateChanged.Broadcast(false);
 			return;
 		}
 		LaunchCharacterNotify(500.0f);
 		return;
 	}
 
-	// 공격하고 있는 대상을 가져옴.
-	LastAttacker = DamageData.Attacker;
+
+	
 	//float FinalDamage = DamageData.DamageAmount;
 
 	// 공격하고 있는 대상의 위치와 데미지에 따라서 피격 애니메이션 재생.
@@ -842,6 +935,53 @@ void AKZCharacterPlayer::Render_InterActionUi(EInterActionType _Tag, ESlateVisib
 void AKZCharacterPlayer::Ui_Key_State_Reset()
 {
 	UiComponent->Delegate_OnInterActionFKey_SetStateChanged.Broadcast(0.0f);
+}
+
+void AKZCharacterPlayer::Inventory_Close()
+{
+	AKZPlayerController* pPlayerController = Cast<AKZPlayerController>(GetController());
+	AIHPlayerState* pPlayerState = GetPlayerState<AIHPlayerState>();
+
+	pPlayerController->Open_Inventory(pPlayerState->Get_InventoryComponent()->Get_ItemMap());
+}
+
+void AKZCharacterPlayer::InterAction()
+{
+	const float DeltaTime = GetWorld()->GetDeltaSeconds();
+
+	/*F키 상호작용 테스트 코드*/
+	switch (InterActionType)
+	{
+	case EInterActionType::None:
+		break;
+	case EInterActionType::Dialog:
+		break;
+	case EInterActionType::Chest:
+		break;
+	case EInterActionType::Item:
+		UiComponent->Delegate_OnInterActionFKeyStateChanged.Broadcast(DeltaTime);
+		break;
+	default:
+		break;
+	}
+
+
+}
+
+
+void AKZCharacterPlayer::UpdateMovementForLockOn(bool bInIsLockOn)
+{
+	bIsLockOn = bInIsLockOn;
+	if (bIsLockOn)
+	{
+		bUseControllerRotationYaw = true;
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+	}
+	else
+	{
+		bUseControllerRotationYaw = false;
+		GetCharacterMovement()->bOrientRotationToMovement = true;
+	}
 }
 
 bool AKZCharacterPlayer::CanTargetLockOn()

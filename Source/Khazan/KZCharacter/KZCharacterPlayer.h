@@ -12,6 +12,10 @@
 #include "../Interface/KZLockOnInterface.h"
 #include "KZCharacterPlayer.generated.h"
 
+//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLockOnStateChanged, bool /*bIsLockOn*/)
+//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLockOnStateChanged, bool /**/bIsLockOn)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLockOnStateChanged, bool, bInIsLockedOn);
+
 // 전방선언.
 class UInputAction;
 
@@ -34,6 +38,9 @@ class KHAZAN_API AKZCharacterPlayer :
 public:
 	// Sets default values for this character's properties
 	AKZCharacterPlayer();
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnLockOnStateChanged OnLockOnStateChanged;
 
 protected:
 	// Called when the game starts or when spawned
@@ -127,10 +134,21 @@ protected:
 
 	// 5_11 선환 ( Ui Test를 위해 임시 추가 ) 
 	UPROPERTY(EditAnywhere, Category = Input, BlueprintReadOnly)
-	TObjectPtr<class UInputAction> UiTestAction;
+	TObjectPtr<class UInputAction> InventoryOpenAction;
 
 	UPROPERTY(EditAnywhere, Category = Input, BlueprintReadOnly)
 	TObjectPtr<class UInputAction> LockOnAction;
+
+	// 5_21 추가 
+	UPROPERTY(VisibleAnywhere, Category = Input, BlueprintReadOnly)
+	TObjectPtr<class UInputAction> Ui_Inventory;
+
+
+	UPROPERTY(VisibleAnywhere, Category = Input, BlueprintReadOnly)
+	TObjectPtr<class UInputAction> Ui_InterAction;
+
+
+
 
 	void Move(const FInputActionValue& value);
 	void Sprint(const FInputActionValue& value);
@@ -142,7 +160,7 @@ protected:
 	void Guard(const FInputActionValue& value);
 	void StopGuard(const FInputActionValue& value);
 	void LockOn(const FInputActionValue& value);
-	void UiTest();
+	void InventoryOpen();
 
 	// 점프
 public:
@@ -198,6 +216,9 @@ public:
 
 	bool Get_Ui_Key_Statue() { return HasUiKeyFinished; }
 
+	void Inventory_Close();
+	void InterAction();
+
 protected:
 	UPROPERTY(VisibleAnywhere, Category = OverlapType, BlueprintReadOnly)
 	EInterActionType InterActionType;
@@ -233,9 +254,14 @@ protected:
 	float DetectRad;
 
 
+	UFUNCTION()
+	void UpdateMovementForLockOn(bool bInIsLockOn);
 	// IKZLockOnInterface을(를) 통해 상속됨
 	bool CanTargetLockOn() override;
 
 	FVector GetTargetLocation() override;
 
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly , Category = LockOn)
+	bool bIsLockOn = false;
 };

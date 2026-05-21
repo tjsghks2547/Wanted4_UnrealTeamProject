@@ -17,8 +17,8 @@ ABossAIController::ABossAIController()
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
 
 	// 시야(Sight) 설정
-	SightConfig->SightRadius = 2000.0f; // 감지 범위
-	SightConfig->LoseSightRadius = 2000.0f; // 감지 해제 범위
+	SightConfig->SightRadius = 2300.0f; // 감지 범위
+	SightConfig->LoseSightRadius = 2500.0f; // 감지 해제 범위
 	SightConfig->PeripheralVisionAngleDegrees = 180.0f; // 시야각(양옆 45도 씩 총 360도)
 	SightConfig->SetMaxAge(1.0f); // 타겟을 놓친 후 기억하는 시간
 

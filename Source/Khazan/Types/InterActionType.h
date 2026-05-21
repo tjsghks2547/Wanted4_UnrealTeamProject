@@ -19,3 +19,21 @@ enum class EInterAction_Key_Type : uint8
 	F_KEY UMETA(DisplayName = "F_KEY"),
 
 };
+
+
+
+USTRUCT(BlueprintType)
+struct FItemData
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	FName ItemName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	int Amount = 0;
+};
+
+
+
