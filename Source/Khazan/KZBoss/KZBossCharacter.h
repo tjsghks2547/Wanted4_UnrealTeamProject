@@ -34,8 +34,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual void PlayAttackMontage() override;
 	
+	// 원거리 공격 실행 함수 (몽타주 재생)
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	virtual void PlayLongRangeAttackMontage() override;
+
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void ExecuteBackStep();
+
+	//UFUNCTION(BlueprintCallable, Category = "Combat")
+	//void ExeCuteThrowBlade();
 
 public:
 

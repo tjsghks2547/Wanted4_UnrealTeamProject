@@ -100,36 +100,9 @@ void AKZMonsterCharacter::PlayAttackMontage()
 	}
 }
 
-void AKZMonsterCharacter::PlayAttackMontage_Internal(UAnimMontage* MontageToPlay, FName SectionName)
+void AKZMonsterCharacter::PlayLongRangeAttackMontage()
 {
-	if (!MontageToPlay) return;
 
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (AnimInstance)
-	{
-		AnimInstance->Montage_Play(MontageToPlay);
-		if (!SectionName.IsNone())
-		{
-			AnimInstance->Montage_JumpToSection(SectionName, MontageToPlay);
-		}
-
-		// 공통 종료 처리 (부모가 딱 한 번만 정의)
-		FOnMontageEnded EndDelegate;
-		EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
-			{
-
-				if (BlackboardComp)
-				{
-					BlackboardComp->SetValueAsBool(FName("IsAttacking"), false);
-				}
-				if (AIC)
-				{
-					AIC->ClearFocus(EAIFocusPriority::Gameplay);
-				}
-			});
-
-		AnimInstance->Montage_SetEndDelegate(EndDelegate, MontageToPlay);
-	}
 }
 
 
@@ -285,10 +258,6 @@ void AKZMonsterCharacter::LaunchCharacterNotify(float LaunchForce)
 
 bool AKZMonsterCharacter::CanTargetLockOn()
 {
-	if (bIsDead || (StatComponent && StatComponent->GetCurrentHp() <= 0))
-	{
-		return false;
-	}
 	return true;
 }
 

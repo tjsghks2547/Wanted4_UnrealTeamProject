@@ -84,8 +84,8 @@ void AKZBossCharacter::PlayAttackMontage()
 		SectionName = FName(*FString::Printf(TEXT("Batk%d"), RandomIdx));
 	}
 
-	PlayAnimMontage(SelectedMontage, 1.0f, SectionName);
 
+	AnimInstance->Montage_Play(SelectedMontage);
 	// 몽타주가 끝났을 때 람다함수 바인딩
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
@@ -99,6 +99,50 @@ void AKZBossCharacter::PlayAttackMontage()
 
 	// 몽타주가 끝났을 때, 호출될 델리게이트 설정
 	AnimInstance->Montage_SetEndDelegate(EndDelegate, BasicAttackMontage);
+
+	if (RandomIdx != 4)
+	{
+		AnimInstance->Montage_JumpToSection(SectionName, SelectedMontage);
+	}
+	//else {
+		//ExecuteBackStep();
+	//}
+
+}
+
+void AKZBossCharacter::PlayLongRangeAttackMontage()
+{
+	Super::PlayLongRangeAttackMontage();
+
+	if (!LongRangeAttackMontage) return;
+
+
+	//if (AIC)
+	//{
+	//	if (AIC->GetPathFollowingComponent())
+	//	{
+	//		// 이동 가이드는 현재 진행중인 이동을 중단하여 백스텝 동작이 원활하게 수행되도록 함
+	//		AIC->GetPathFollowingComponent()->AbortMove(*AIC, FPathFollowingResultFlags::MovementStop);
+	//	}
+	//}
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+	AnimInstance->Montage_Play(LongRangeAttackMontage);
+	// 몽타주가 끝났을 때 람다함수 바인딩
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
+		{
+			if (AIC && BlackboardComp)
+			{
+				BlackboardComp->SetValueAsBool(FName("IsAttacking"), false);
+				AIC->ClearFocus(EAIFocusPriority::Gameplay);
+			}
+		});
+
+	// 몽타주가 끝났을 때, 호출될 델리게이트 설정
+	AnimInstance->Montage_SetEndDelegate(EndDelegate, LongRangeAttackMontage);
+	
 }
 
 void AKZBossCharacter::ExecuteBackStep()
@@ -114,10 +158,11 @@ void AKZBossCharacter::ExecuteBackStep()
 
 	GetCharacterMovement()->SetMovementMode(MOVE_Falling);
 	FVector BackDir = -GetActorForwardVector();
-	FVector LaunchVelocity = 0.66 * (BackDir * Distance + FVector(0, 0, UpForce));
+	FVector LaunchVelocity = 0.66* (BackDir * Distance + FVector(0, 0, UpForce));
 	//UE_LOG(LogTemp, Warning, TEXT("BackStep Execute! Vector: %s"), *LaunchVelocity.ToString());
 	LaunchCharacter(LaunchVelocity, true, true);
 }
+
 
 void AKZBossCharacter::ProcessDamage(const FDamageData& DamageData)
 {
