@@ -56,8 +56,8 @@ void UPlayerUIWidget::NativeConstruct()
 	/* ----------------- */
 
 	/* Inventory 관련 */
-	InventoryUiWidget = Cast<UInventoryWidget>(GetWidgetFromName(TEXT("WBP_Inventory")));
-	ensureAlways(InventoryUiWidget);
+	//InventoryUiWidget = Cast<UInventoryWidget>(GetWidgetFromName(TEXT("WBP_Inventory")));
+	//ensureAlways(InventoryUiWidget);
 
 
 	/* ---------------*/
@@ -77,12 +77,12 @@ void UPlayerUIWidget::NativeConstruct()
 #pragma region UI 렌더링 초기 설정
 	PlayerInterActionDialogWidget->SetVisibility(ESlateVisibility::Collapsed);
 	InterActionKeyFWidget->SetVisibility(ESlateVisibility::Collapsed);
-	InventoryUiWidget->SetVisibility(ESlateVisibility::Collapsed);
+	//InventoryUiWidget->SetVisibility(ESlateVisibility::Collapsed);
 #pragma endregion 
 
 
 #pragma region Inventory Slot 초기화 
-	InventoryUiWidget->Init_Slot();
+	//InventoryUiWidget->Init_Slot();
 #pragma endregion 
 
 }
@@ -173,7 +173,7 @@ void UPlayerUIWidget::Set_F_KeyState(float _InPercent)
 void UPlayerUIWidget::UpdateInventoryUI(TMap<FName, int32>& _ItemMapContainer)
 {
 
-	InventoryUiWidget->UpdateInventory(_ItemMapContainer);
+	//InventoryUiWidget->UpdateInventory(_ItemMapContainer);
 
 
 #pragma region 렌더링 관련 
@@ -189,12 +189,12 @@ void UPlayerUIWidget::RenderInventoryUI()
 
 	if (CurrentVisiblilty == ESlateVisibility::Visible)
 	{
-		InventoryUiWidget->SetVisibility(ESlateVisibility::Hidden);
+		//InventoryUiWidget->SetVisibility(ESlateVisibility::Hidden);
 	}
 
 	else
 	{
-		InventoryUiWidget->SetVisibility(ESlateVisibility::Visible);
+		//InventoryUiWidget->SetVisibility(ESlateVisibility::Visible);
 	}
 }
 
