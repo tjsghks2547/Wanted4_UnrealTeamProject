@@ -84,6 +84,7 @@ protected:
 	TObjectPtr<class UStatComponent> StatComponent;
 
 	// IKZDamageInterface을(를) 통해 상속됨
+	UFUNCTION(BlueprintCallable)
 	void ProcessDamage(const FDamageData& DamageData) override;
 
 	UPROPERTY()
