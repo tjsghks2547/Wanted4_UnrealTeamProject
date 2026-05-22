@@ -13,6 +13,10 @@
 #include "Component/InventoryComponent.h"
 #include "UI/PlayerUIWidget.h"
 #include "Types/InterActionType.h"
+#include "KZPlayer/KZPlayerController.h"
+#include "HUD/IH_HUD.h"
+#include "Player/IHPlayerState.h"
+
 #pragma endregion 
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/OverlapResult.h"
@@ -115,12 +119,12 @@ AKZCharacterPlayer::AKZCharacterPlayer()
 	}
 
 	// 5_11 선환 추가 
-	static ConstructorHelpers::FObjectFinder<UInputAction> UiTestActionRef{
-		TEXT("/Game/Input/Actions/IA_UiTest.IA_UiTest")
+	static ConstructorHelpers::FObjectFinder<UInputAction> InventroyOpenActionRef{
+		TEXT("/Game/Khazan/Input/Action/IA_InventoryOpen.IA_InventoryOpen")
 	};
-	if (UiTestActionRef.Succeeded())
+	if (InventroyOpenActionRef.Succeeded())
 	{
-		UiTestAction = UiTestActionRef.Object;
+		InventoryOpenAction = InventroyOpenActionRef.Object;
 	}
 
 	static ConstructorHelpers::FObjectFinder<UInputAction> GuardActionRef{
@@ -139,8 +143,24 @@ AKZCharacterPlayer::AKZCharacterPlayer()
 		LockOnAction = LockOnActionRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> Ui_InventoryActionRef{
+		TEXT("/Game/Khazan/Input/UI/IA_Inventory.IA_Inventory")
+	};
+	if (Ui_InventoryActionRef.Succeeded())
+	{
+		Ui_Inventory = Ui_InventoryActionRef.Object;
+	}
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> Ui_InterActionRef{
+		TEXT("/Game/Khazan/Input/Action/IA_InterAction.IA_InterAction")
+	};
+	if (Ui_InterActionRef.Succeeded())
+	{
+		Ui_InterAction = Ui_InterActionRef.Object;
+	}
+	
 
+	
 }
 
 // Called when the game starts or when spawned
@@ -327,11 +347,29 @@ void AKZCharacterPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		);
 
 		EnhancedInputComponent->BindAction(
-			UiTestAction,
+			InventoryOpenAction,
 			ETriggerEvent::Started,
 			this,
-			&AKZCharacterPlayer::UiTest
+			&AKZCharacterPlayer::InventoryOpen
 		);
+
+		EnhancedInputComponent->BindAction(
+			Ui_Inventory,
+			ETriggerEvent::Started,
+			this,
+			&AKZCharacterPlayer::Inventory_Close
+		);
+
+		EnhancedInputComponent->BindAction(
+			Ui_InterAction,
+			ETriggerEvent::Triggered,
+			this,
+			&AKZCharacterPlayer::InterAction
+		);
+
+
+
+
 		EnhancedInputComponent->BindAction(
 			LockOnAction,
 			ETriggerEvent::Started,
@@ -567,7 +605,7 @@ void AKZCharacterPlayer::StrongAttack(const FInputActionValue& value)
 
 
 // 5_11 선환 추가 
-void AKZCharacterPlayer::UiTest()
+void AKZCharacterPlayer::InventoryOpen()
 {
 	/* hp 관련 테스트 코드(5_11 선환) */
 	//m_pStatComponent->Apply_Damage(50);
@@ -596,8 +634,17 @@ void AKZCharacterPlayer::UiTest()
 
 
 	// 5_20일 인벤토리 테스트
-	UiComponent->Delegate_InventoryOpen.Broadcast(InventoryComponent->Get_ItemMap());
+	//UiComponent->Delegate_InventoryOpen.Broadcast(InventoryComponent->Get_ItemMap());
+
+
+
+	AKZPlayerController* pPlayerController = Cast<AKZPlayerController>(GetController());
+	AIHPlayerState* pPlayerState = GetPlayerState<AIHPlayerState>();
+
+	pPlayerController->Open_Inventory(pPlayerState->Get_InventoryComponent()->Get_ItemMap());
+
 }
+
 
 void AKZCharacterPlayer::Jump()
 {
@@ -888,6 +935,37 @@ void AKZCharacterPlayer::Render_InterActionUi(EInterActionType _Tag, ESlateVisib
 void AKZCharacterPlayer::Ui_Key_State_Reset()
 {
 	UiComponent->Delegate_OnInterActionFKey_SetStateChanged.Broadcast(0.0f);
+}
+
+void AKZCharacterPlayer::Inventory_Close()
+{
+	AKZPlayerController* pPlayerController = Cast<AKZPlayerController>(GetController());
+	AIHPlayerState* pPlayerState = GetPlayerState<AIHPlayerState>();
+
+	pPlayerController->Open_Inventory(pPlayerState->Get_InventoryComponent()->Get_ItemMap());
+}
+
+void AKZCharacterPlayer::InterAction()
+{
+	const float DeltaTime = GetWorld()->GetDeltaSeconds();
+
+	/*F키 상호작용 테스트 코드*/
+	switch (InterActionType)
+	{
+	case EInterActionType::None:
+		break;
+	case EInterActionType::Dialog:
+		break;
+	case EInterActionType::Chest:
+		break;
+	case EInterActionType::Item:
+		UiComponent->Delegate_OnInterActionFKeyStateChanged.Broadcast(DeltaTime);
+		break;
+	default:
+		break;
+	}
+
+
 }
 
 

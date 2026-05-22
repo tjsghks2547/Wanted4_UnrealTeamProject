@@ -7,7 +7,7 @@
 #include "Component/Item/ItemComponent.h"
 #include "Component/InventoryComponent.h"
 #include "Data/ItemDataTable.h"
-
+#include "Player/IHPlayerState.h"
 
 // Sets default values
 ABottleItem::ABottleItem()
@@ -80,14 +80,17 @@ void ABottleItem::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
 	{
 		if (HasPickUp == false)
 		{
-			UInventoryComponent* InventoryComp = OtherActor->FindComponentByClass<UInventoryComponent>();
+			APawn* PlayerPawn = Cast<APawn>(OtherActor);
+			AIHPlayerState* pPlayerState = PlayerPawn->GetPlayerState<AIHPlayerState>();
+			UInventoryComponent* InventoryComponent = pPlayerState->Get_InventoryComponent();
 
-			if (InventoryComp != NULL)
+
+			if (InventoryComponent != NULL)
 			{
 				FDataTableRowHandle ItemHandle = ItemComponent->Get_ItemData();
 
 				ItemComponent->Set_ItemRowName(TEXT("Bread"));
-				InventoryComp->Add_Item(ItemHandle.RowName, 1);
+				InventoryComponent->Add_Item(ItemHandle.RowName, 1);
 			}
 
 			HasPickUp = true;
