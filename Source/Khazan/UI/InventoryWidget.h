@@ -9,7 +9,7 @@
 
 
 /**
- * 
+ *
  */
 UCLASS()
 class KHAZAN_API UInventoryWidget : public UUserWidget
@@ -21,30 +21,34 @@ public:
 
 protected:
 	virtual void NativeConstruct() override;
-	
+
+
 public:
 	UFUNCTION()
 	void UpdateInventory(TMap<FName, int32>& _ItemMapContainer);
-	void Init_Slot(); 
+	void Init_Slot();
+	void ShowItemTip(FName _itemRowName);
 
 private:
 	UPROPERTY(VisibleAnywhere)
-	int InventorySize = 0; 
+	int InventorySize = 0;
 
 	UPROPERTY(VisibleAnywhere)
-	bool IsAddFailed; 
+	bool IsAddFailed;
 
 	UPROPERTY(VisibleAnywhere)
-	TSubclassOf<class UItemWidget> ItemWidgetClass; 
+	FItemData Slots;
+
+	UPROPERTY(VisibleAnywhere)
+	TSubclassOf<class UItemWidget> ItemWidgetClass;
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class UCanvasPanel> InventroyCanvasPanel;
 
-	UPROPERTY(VisibleAnywhere) 
-	TArray<class UItemWidget*> SlotArray; 
+	UPROPERTY(VisibleAnywhere)
+	TArray<class UItemWidget*> SlotArray;
 
-
-
-
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<class UItemTipWidget> ItemTipWidget;
 
 };

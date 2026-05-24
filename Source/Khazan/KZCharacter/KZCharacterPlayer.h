@@ -134,10 +134,21 @@ protected:
 
 	// 5_11 선환 ( Ui Test를 위해 임시 추가 ) 
 	UPROPERTY(EditAnywhere, Category = Input, BlueprintReadOnly)
-	TObjectPtr<class UInputAction> UiTestAction;
+	TObjectPtr<class UInputAction> InventoryOpenAction;
 
 	UPROPERTY(EditAnywhere, Category = Input, BlueprintReadOnly)
 	TObjectPtr<class UInputAction> LockOnAction;
+
+	// 5_21 추가 
+	UPROPERTY(VisibleAnywhere, Category = Input, BlueprintReadOnly)
+	TObjectPtr<class UInputAction> Ui_Inventory;
+
+
+	UPROPERTY(VisibleAnywhere, Category = Input, BlueprintReadOnly)
+	TObjectPtr<class UInputAction> Ui_InterAction;
+
+
+
 
 	void Move(const FInputActionValue& value);
 	void Sprint(const FInputActionValue& value);
@@ -149,7 +160,7 @@ protected:
 	void Guard(const FInputActionValue& value);
 	void StopGuard(const FInputActionValue& value);
 	void LockOn(const FInputActionValue& value);
-	void UiTest();
+	void InventoryOpen();
 
 	// 점프
 public:
@@ -204,6 +215,9 @@ public:
 	void Ui_Key_State_Reset();
 
 	bool Get_Ui_Key_Statue() { return HasUiKeyFinished; }
+
+	void Inventory_Close();
+	void InterAction();
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category = OverlapType, BlueprintReadOnly)

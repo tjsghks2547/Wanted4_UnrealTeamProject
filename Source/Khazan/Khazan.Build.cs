@@ -8,8 +8,19 @@ public class Khazan : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { 
-			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "AIModule" , "UMG", "NavigationSystem", "Niagara" });
+		PublicDependencyModuleNames.AddRange(new string[] 
+		{ 
+			"Core", 
+			"CoreUObject", 
+			"Engine", 
+			"InputCore",
+			"EnhancedInput", 
+			"AIModule" ,
+			"UMG", 
+			"NavigationSystem",
+            "Slate",       // ก็ Slate UI
+			"SlateCore"
+        });
 
 
         PublicIncludePaths.AddRange(new string[] { "Khazan" });
