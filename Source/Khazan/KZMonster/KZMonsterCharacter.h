@@ -112,4 +112,14 @@ public:
 	FOnMonsterDamaged OnMonsterDamaged;
 	
 	
+/* 5_24 선환 추가*/
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+	TObjectPtr<class UWidgetComponent> Hp_Widget;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+	TObjectPtr<class UWidgetComponent> Stamina_Widget;
+
+
 };
