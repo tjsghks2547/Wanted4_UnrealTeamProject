@@ -23,7 +23,7 @@ protected:
 
 public:
 	void OpenInventoryWidget(TMap<FName, int32>& _ItemMapContainer);
-	
+	TObjectPtr<class UPlayerUIWidget> Get_MainUI_Widget() { return PlayerUiWidget; }
 
 protected:
 	// 클래스 정보. 클래스 정보를 바탕으로 실제 UI몸체 생성
