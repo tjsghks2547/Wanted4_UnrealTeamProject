@@ -22,6 +22,8 @@ public:
 protected:
 	virtual void NativeConstruct() override;
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
 
 public:
 	//TObjectPtr<class UImage> Get_ImageUi() { return ItemImage; }
@@ -61,6 +63,9 @@ protected:
 
 	UPROPERTY()
 	FName ItemName;
+
+	UPROPERTY()
+	TObjectPtr<class UItemContextMenuWidget> ItemContextMenuWidget;
 
 protected:
 	// 바인딩할 함수 선언

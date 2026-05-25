@@ -14,6 +14,7 @@
 #include "Types/InterActionType.h"
 #include "InventoryWidget.h"
 #include "KZPlayer/KZPlayerController.h"
+#include "QuickSlotWidget.h"
 
 
 
@@ -65,6 +66,11 @@ void UPlayerUIWidget::NativeConstruct()
 	ensureAlways(InventoryUiWidget);
 
 	/* ---------------*/
+
+
+	/* Quick Slot 관련 */
+	QuickSlotWidget = Cast<UQuickSlotWidget>(GetWidgetFromName(TEXT("WBP_QuickSlot")));
+	ensureAlways(QuickSlotWidget);
 
 #pragma endregion 
 

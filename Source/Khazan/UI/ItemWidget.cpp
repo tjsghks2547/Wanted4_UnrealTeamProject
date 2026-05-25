@@ -8,6 +8,7 @@
 #include "Components/TextBlock.h"
 #include "Data/ItemDataTable.h"
 #include "UI/InventoryWidget.h"
+#include "UI/ItemContextMenuWidget.h"
 
 UItemWidget::UItemWidget(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
@@ -65,12 +66,16 @@ void UItemWidget::NativeConstruct()
 	AmountTextBlock = Cast<UTextBlock>(GetWidgetFromName(TEXT("Item_Amount_Text")));
 	ensureAlways(AmountTextBlock);
 
+	ItemContextMenuWidget = Cast<UItemContextMenuWidget>(GetWidgetFromName(TEXT("WBP_Item_Context_Menu")));
+	ensureAlways(ItemContextMenuWidget);
+
 	// Single    델리게이트 → BindDynamic
 	// Multicast 델리게이트 → AddDynamic
 	// 이벤트 바인딩
 
 	ItemClickButton->OnPressed.AddDynamic(this, &UItemWidget::OnItemImageClicked);
 
+	ItemContextMenuWidget->SetVisibility(ESlateVisibility::Hidden);
 }
 
 FReply UItemWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
@@ -84,6 +89,19 @@ FReply UItemWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent
 	}
 
 	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
+
+FReply UItemWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	{
+		// 장착/해제 로직 호출
+		ItemContextMenuWidget->SetVisibility(ESlateVisibility::Visible);
+
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
 void UItemWidget::Slot_Update(FName _ItemKey, int32 _iAmount)
@@ -101,10 +119,12 @@ void UItemWidget::Slot_Update(FName _ItemKey, int32 _iAmount)
 	case EItemType::Consumable:
 	{
 		ItemBackGroundImage->SetBrushFromTexture(ArrayBackGroundTexture[0]);
+		ItemContextMenuWidget->Set_ItemType(_ItemKey, EItemType::Consumable, _iAmount);
 	}
 	break;
 	case EItemType::Weapon:
 		ItemBackGroundImage->SetBrushFromTexture(ArrayBackGroundTexture[1]);
+		ItemContextMenuWidget->Set_ItemType(_ItemKey, EItemType::Weapon, _iAmount);
 		break;
 	case EItemType::Armor:
 		break;

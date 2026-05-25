@@ -24,6 +24,8 @@ protected:
 public:
 	FORCEINLINE void Set_HpProgressBar(class UProgressBar* pProgressBar) { m_pHpProgressBar = pProgressBar; }
 	void UpdateHpProgressBar(int32 _iCurrentHp);
+	void Update_MonsterHpProgressHpBar(int32 _iCurrentHp);
+
 	void Setup_Hp(int32 _iCurrentHp, int32 _iMaxHp)
 	{
 		m_iCurrentHp = _iCurrentHp;
