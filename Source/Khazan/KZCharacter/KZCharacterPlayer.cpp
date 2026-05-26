@@ -23,7 +23,8 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
-
+#include "../Game/KZGamemode.h"
+#include "Components/CapsuleComponent.h"
 
 // Sets default values
 AKZCharacterPlayer::AKZCharacterPlayer()
@@ -37,7 +38,6 @@ AKZCharacterPlayer::AKZCharacterPlayer()
 
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
-
 
 
 	// 카메라 설정. 스프링 암 안에 카메라 넣기.
@@ -161,6 +161,14 @@ AKZCharacterPlayer::AKZCharacterPlayer()
 	{
 		Ui_InterAction = Ui_InterActionRef.Object;
 	}
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> DeadTestActionRef{
+	TEXT("/Game/Khazan/Input/Action/IA_DeadTest.IA_DeadTest")
+	};
+	if (DeadTestActionRef.Succeeded())
+	{
+		DeadTestAction = DeadTestActionRef.Object;
+	}
 	
 	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> ParryEffectRef{
 	TEXT("/Game/Effect/Parry_Effect.Parry_Effect")
@@ -185,8 +193,24 @@ void AKZCharacterPlayer::BeginPlay()
 	Super::BeginPlay();
 
 	SetCharacterControl();
+
+	// 리스폰 시 초기화 해야함.
+	if (StatComponent)
+	{
+		StatComponent->SetUp_stat_Hp(1000, 1000);
+		StatComponent->SetUp_stat_Stamina(100, 100);
+	}
+
+
+
+	if (APlayerController* APC = Cast<APlayerController>(GetController()))
+	{
+		APC->SetIgnoreMoveInput(false);
+		APC->SetIgnoreLookInput(false);
+	}
 	
 	OnLockOnStateChanged.AddDynamic(this, &AKZCharacterPlayer::UpdateMovementForLockOn);
+	//OnPlayerDead.AddUObject(this, &AKZGamemode::RestartPlayer);
 }
 
 
@@ -383,14 +407,18 @@ void AKZCharacterPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			&AKZCharacterPlayer::InterAction
 		);
 
-
-
-
 		EnhancedInputComponent->BindAction(
 			LockOnAction,
 			ETriggerEvent::Started,
 			this,
 			&AKZCharacterPlayer::LockOn
+		);
+
+		EnhancedInputComponent->BindAction(
+			DeadTestAction,
+			ETriggerEvent::Started,
+			this,
+			&AKZCharacterPlayer::Dead
 		);
 	}
 
@@ -433,14 +461,22 @@ void AKZCharacterPlayer::SetCharacterControl()
 			= ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(
 				PlayerController->GetLocalPlayer()
 			);
-		// 매핑 컨텍스트 추가 (우선순위 0)
-		InputSystem->AddMappingContext(DefaultContext, 0);
+		if (InputSystem)
+		{
+			InputSystem->ClearAllMappings();
+
+			// 매핑 컨텍스트 추가 (우선순위 0)
+			InputSystem->AddMappingContext(DefaultContext, 0);
+		}
+
 	}
 
 }
 
 void AKZCharacterPlayer::Move(const FInputActionValue& value)
 {
+	if (bIsDead) return;
+
 	// 약공격 혹은 강공격 애니메이션 몽타주 진행 중에 끊고 움직이려는 경우
 	// Move에서 강제로 몽타주를 끄고 움직임 활성화.
 	if (GetCharacterMovement()->MovementMode == EMovementMode::MOVE_Walking)
@@ -474,7 +510,7 @@ void AKZCharacterPlayer::Move(const FInputActionValue& value)
 
 void AKZCharacterPlayer::Sprint(const FInputActionValue& value)
 {
-	if (bIsGuarding) return;
+	if (bIsGuarding || bIsDead) return;
 
 	if (CurrentAttackType != EAttackType::None)
 	{
@@ -502,6 +538,7 @@ void AKZCharacterPlayer::StopSprint(const FInputActionValue& value)
 
 void AKZCharacterPlayer::Look(const FInputActionValue& value)
 {
+	if (bIsDead) return;
 	// 락온 시 플레이어의 입력에 의한 카메라 이동 방지.
 	if (!bIsLockOn)
 	{
@@ -519,6 +556,8 @@ void AKZCharacterPlayer::Look(const FInputActionValue& value)
 // 회피
 void AKZCharacterPlayer::Dodge(const FInputActionValue& value)
 {
+	if (bIsDead) return;
+
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (!AnimInstance) return;
 
@@ -566,6 +605,8 @@ void AKZCharacterPlayer::Dodge(const FInputActionValue& value)
 
 void AKZCharacterPlayer::WeakAttack(const FInputActionValue& value)
 {
+	if (bIsDead) return;
+
 	if (GetCharacterMovement()->IsFalling() && StatComponent->GetCurrentStamina() <= 0)
 	{
 		StatComponent->bIsStaminaRegenBlocked = false;
@@ -609,6 +650,7 @@ void AKZCharacterPlayer::WeakAttackCompleted(const FInputActionValue& value)
 
 void AKZCharacterPlayer::StrongAttack(const FInputActionValue& value)
 {
+	if (bIsDead) return;
 	if (GetCharacterMovement()->IsFalling() && StatComponent->GetCurrentStamina() <= 0)
 	{
 		return;
@@ -664,7 +706,10 @@ void AKZCharacterPlayer::InventoryOpen()
 void AKZCharacterPlayer::Jump()
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (GetCharacterMovement()->IsFalling() || CurrentAttackType != EAttackType::None || AnimInstance->Montage_IsPlaying(JumpMontage)) return;
+	if (GetCharacterMovement()->IsFalling() ||
+		CurrentAttackType != EAttackType::None ||
+		AnimInstance->Montage_IsPlaying(JumpMontage) ||
+		bIsDead) return;
 
 
 	if (AnimInstance && JumpMontage)
@@ -696,7 +741,7 @@ void AKZCharacterPlayer::ExcutePhysicsJump()
 
 void AKZCharacterPlayer::Guard(const FInputActionValue& value)
 {
-	if (GetCharacterMovement()->IsFalling()) return;
+	if (GetCharacterMovement()->IsFalling() || bIsDead) return;
 
 	if (CurrentAttackType != EAttackType::None)
 	{
@@ -723,7 +768,7 @@ void AKZCharacterPlayer::StopGuard(const FInputActionValue& value)
 
 void AKZCharacterPlayer::LockOn(const FInputActionValue& value)
 {
-	if (LockOnTarget)
+	if (LockOnTarget || bIsDead)
 	{
 		LockOnTarget = nullptr;
 		OnLockOnStateChanged.Broadcast(false);
@@ -894,24 +939,42 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 
 void AKZCharacterPlayer::Dead()
 {
+	bIsDead = true; // 테스트 전용 나중에 지워야함.
+	UE_LOG(LogTemp, Log, TEXT("Player Dead Function Called"));
 	if (!bIsDead)
 	{
 		return;
 	}
 
-	GetCharacterMovement()->StopMovementImmediately();
-	GetCharacterMovement()->DisableMovement();
-
+	// 입력 방지.
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
 		PC->SetIgnoreMoveInput(true);
 		PC->SetIgnoreLookInput(true);
 	}
 
+	// 플레이어 물리 및 로직 정지.
+	GetCharacterMovement()->StopMovementImmediately();
+	GetCharacterMovement()->DisableMovement();
+
+	// 충돌 처리
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+
+	GetCapsuleComponent()->SetCollisionResponseToChannel(C_CHANNEL_MONSTER, ECR_Ignore);
+
+	// 락온 해제.
+	if (bIsLockOn)
+	{
+		LockOnTarget = nullptr;
+		OnLockOnStateChanged.Broadcast(false);
+	}
+
 	if (OnPlayerDead.IsBound())
 	{
+		UE_LOG(LogTemp, Log, TEXT("Player Dead Event Broadcasted"));
 		OnPlayerDead.Broadcast(this);
 	}
+
 }
 
 FString AKZCharacterPlayer::GetAttackerPosString(AActor* Attacker)
@@ -1009,10 +1072,7 @@ void AKZCharacterPlayer::InterAction()
 	default:
 		break;
 	}
-
-
 }
-
 
 void AKZCharacterPlayer::UpdateMovementForLockOn(bool bInIsLockOn)
 {
@@ -1037,4 +1097,22 @@ bool AKZCharacterPlayer::CanTargetLockOn()
 FVector AKZCharacterPlayer::GetTargetLocation()
 {
 	return FVector();
+}
+
+void AKZCharacterPlayer::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	auto* PC = Cast<AKZPlayerController>(NewController);
+	if (PC)
+	{
+		AIH_HUD* HUD = Cast<AIH_HUD>(PC->GetHUD());
+		if (HUD && HUD->GetPlayerUIWidget())
+		{
+			SetupPlayerUiWidget(HUD->GetPlayerUIWidget());
+
+			HUD->GetPlayerUIWidget()->SetUp_Ui_Hp(StatComponent->GetCurrentHp(), StatComponent->GetMaxHp());
+			HUD->GetPlayerUIWidget()->SetUp_Ui_Stamina(StatComponent->GetCurrentStamina(), StatComponent->GetMaxStamina());
+		}
+	}
 }

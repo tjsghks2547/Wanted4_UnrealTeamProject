@@ -11,17 +11,33 @@ void AKZGamemode::RestartPlayer(AController* NewPlayer)
 	AKZCharacterPlayer* Player = Cast<AKZCharacterPlayer>(NewPlayer->GetPawn());
 	if (Player)
 	{
-		Player->OnPlayerDead.AddLambda([this](AKZCharacterPlayer* DeadPlayer)
+		TWeakObjectPtr<AController> WeakController = NewPlayer;
+
+		Player->OnPlayerDead.AddLambda([this, WeakController](AKZCharacterPlayer* DeadPlayer)
 			{
-				// 플레이어가 죽었을 때 3초 후에 자동으로 리스폰.
-				FTimerHandle RespawnTimerHandle;
-				GetWorldTimerManager().SetTimer(RespawnTimerHandle, [this, DeadPlayer]()
-					{
-						if (AController* PlayerController = Cast<AController>(DeadPlayer->GetController()))
+				if (WeakController.IsValid())
+				{
+					// 플레이어가 죽었을 때 3초 후에 자동으로 리스폰.
+					FTimerHandle RespawnTimerHandle;
+					GetWorldTimerManager().SetTimer(RespawnTimerHandle, [this, WeakController, DeadPlayer]()
 						{
-							RestartPlayer(PlayerController);
-						}
-					}, 3.0f, false);
+							if (WeakController.IsValid())
+							{
+								AController* PC = WeakController.Get();
+
+								PC->UnPossess();
+
+								this->RestartPlayer(PC);
+
+								if (DeadPlayer)
+								{
+									DeadPlayer->Destroy();
+								}
+							}
+
+						}, 3.0f, false);
+				}
+				
 			});
 	}
 }
