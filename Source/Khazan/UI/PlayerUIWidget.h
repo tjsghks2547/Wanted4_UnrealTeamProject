@@ -44,6 +44,11 @@ public:
 	void UpdateInventoryUI(TMap<FName, int32>& _ItemMapContainer);
 	void RenderInventoryUI();
 
+
+
+	TObjectPtr<class UQuickSlotWidget> Get_QuickSlot() { return QuickSlotWidget; }
+
+
 protected:
 #pragma region Hp UI 
 	TObjectPtr<class UPlayerHpProgressBarWidget> WidgetHpProgressBar;
@@ -66,6 +71,10 @@ protected:
 #pragma region Inventory UI 
 	TObjectPtr<class UInventoryWidget> InventoryUiWidget;
 #pragma endregion 
+
+#pragma region QuickSlot
+	TObjectPtr<class UQuickSlotWidget> QuickSlotWidget;
+#pragma endregion
 
 
 };

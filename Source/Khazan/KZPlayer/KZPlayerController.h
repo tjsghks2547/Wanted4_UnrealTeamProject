@@ -21,17 +21,27 @@ class KHAZAN_API AKZPlayerController : public APlayerController
 public:
 	AKZPlayerController();
 
+public:
+	FORCEINLINE TObjectPtr<class UInputMappingContext> GetInputMappingContext() { return InputMappingContext; }
+
 // 5_11 선환 추가 
 protected:
 	virtual void BeginPlay() override; //(UI 클래스 CreateWidget 하기 위해서 추가)
 
+public:
+	void Open_Inventory(TMap<FName, int32>& _ItemMapContainer);
+	void Set_InputUi_IMC();
+	void Set_InputGame_IMC();
+	TObjectPtr<class AIH_HUD> Get_HUD() { return HUD; }
 
-//  5_11 선환 추가 ( UI 클래스 ) 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = UI)
-	TSubclassOf<class UPlayerUIWidget> PlayerUiWidgetClass;
+	UPROPERTY(VisibleAnywhere, Category = Input, BlueprintReadOnly)
+	TObjectPtr<class UInputMappingContext> InputMappingContext;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = UI)
-	TObjectPtr<class UPlayerUIWidget> m_pPlayerUiWidget;
+	UPROPERTY(VisibleAnywhere, Category = Input, BlueprintReadOnly)
+	TObjectPtr<class UInputMappingContext> InputUiMappingContext;
+
+	UPROPERTY(VisibleAnywhere, Category = HUD, BlueprintReadOnly)
+	TObjectPtr<class AIH_HUD> HUD;
 
 };

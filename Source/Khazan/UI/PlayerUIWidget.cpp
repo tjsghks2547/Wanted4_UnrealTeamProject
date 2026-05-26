@@ -13,6 +13,9 @@
 #include "InterActionKey_F_ProgressBarUI.h"
 #include "Types/InterActionType.h"
 #include "InventoryWidget.h"
+#include "KZPlayer/KZPlayerController.h"
+#include "QuickSlotWidget.h"
+
 
 
 UPlayerUIWidget::UPlayerUIWidget(const FObjectInitializer& ObjectInitializer)
@@ -59,8 +62,15 @@ void UPlayerUIWidget::NativeConstruct()
 	//InventoryUiWidget = Cast<UInventoryWidget>(GetWidgetFromName(TEXT("WBP_Inventory")));
 	//ensureAlways(InventoryUiWidget);
 
+	InventoryUiWidget = Cast<UInventoryWidget>(GetWidgetFromName(TEXT("WBP_Inventory_New")));
+	ensureAlways(InventoryUiWidget);
 
 	/* ---------------*/
+
+
+	/* Quick Slot 관련 */
+	QuickSlotWidget = Cast<UQuickSlotWidget>(GetWidgetFromName(TEXT("WBP_QuickSlot")));
+	ensureAlways(QuickSlotWidget);
 
 #pragma endregion 
 
@@ -77,7 +87,7 @@ void UPlayerUIWidget::NativeConstruct()
 #pragma region UI 렌더링 초기 설정
 	PlayerInterActionDialogWidget->SetVisibility(ESlateVisibility::Collapsed);
 	InterActionKeyFWidget->SetVisibility(ESlateVisibility::Collapsed);
-	//InventoryUiWidget->SetVisibility(ESlateVisibility::Collapsed);
+	InventoryUiWidget->SetVisibility(ESlateVisibility::Collapsed);
 #pragma endregion 
 
 
@@ -173,7 +183,7 @@ void UPlayerUIWidget::Set_F_KeyState(float _InPercent)
 void UPlayerUIWidget::UpdateInventoryUI(TMap<FName, int32>& _ItemMapContainer)
 {
 
-	//InventoryUiWidget->UpdateInventory(_ItemMapContainer);
+	InventoryUiWidget->UpdateInventory(_ItemMapContainer);
 
 
 #pragma region 렌더링 관련 
@@ -189,13 +199,27 @@ void UPlayerUIWidget::RenderInventoryUI()
 
 	if (CurrentVisiblilty == ESlateVisibility::Visible)
 	{
-		//InventoryUiWidget->SetVisibility(ESlateVisibility::Hidden);
+		InventoryUiWidget->SetVisibility(ESlateVisibility::Hidden);
+
+		Cast<AKZPlayerController>(GetOwningPlayer())->Set_InputGame_IMC();
+		GetOwningPlayer()->bShowMouseCursor = false;
+
 	}
 
 	else
 	{
-		//InventoryUiWidget->SetVisibility(ESlateVisibility::Visible);
+		InventoryUiWidget->SetVisibility(ESlateVisibility::Visible);
+
+		Cast<AKZPlayerController>(GetOwningPlayer())->Set_InputUi_IMC();
+		GetOwningPlayer()->bShowMouseCursor = true;
+
 	}
+
+	//FInputModeUIOnly UIOnlyInputMode;
+	//GetOwningPlayer()->SetInputMode(UIOnlyInputMode);
+
+	//UIOnlyInputMode.SetWidgetToFocus(InventoryUiWidget->TakeWidget());  // ← 포커스 지정!
+	//GetOwningPlayer()->SetInputMode(UIOnlyInputMode);
 }
 
 
