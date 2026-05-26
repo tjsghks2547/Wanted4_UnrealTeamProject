@@ -220,6 +220,12 @@ void AKZMonsterCharacter::ProcessDamage(const FDamageData& DamageData)
 		{
 			bIsDead = true;
 			Dead();
+			/* 5_26 선환 추가 */
+			AKZPlayerController* pKZPlayerController = Cast<AKZPlayerController>(GetWorld()->GetFirstPlayerController());
+			AIH_HUD* pIH_HUD = pKZPlayerController->Get_HUD();
+
+			pIH_HUD->Get_MainUI_Widget()->RenderBossUi(ESlateVisibility::Hidden);
+
 			return;
 		}
 

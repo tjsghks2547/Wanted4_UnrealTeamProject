@@ -54,12 +54,15 @@ void AKZBossCharacter::BeginPlay()
 	Stamina_Widget->GetWidget()->SetVisibility(ESlateVisibility::Hidden);
 
 	/* 5_26 선환 추가 */
-	AKZPlayerController* pKZPlayerController = Cast<AKZPlayerController>(GetWorld()->GetFirstPlayerController());
-	AIH_HUD* pIH_HUD = pKZPlayerController->Get_HUD();
+	GetWorldTimerManager().SetTimerForNextTick([this]()
+		{
+			AKZPlayerController* pKZPlayerController = Cast<AKZPlayerController>(GetWorld()->GetFirstPlayerController());
 
-	pIH_HUD->Get_MainUI_Widget()->Set_Up_BossUi(
-		StatComponent->GetCurrentHp(), StatComponent->GetMaxHp(), StatComponent->GetCurrentStamina(), StatComponent->GetMaxStamina());
+			AIH_HUD* pIH_HUD = pKZPlayerController->Get_HUD();
 
+			pIH_HUD->Get_MainUI_Widget()->Set_Up_BossUi(
+				StatComponent->GetCurrentHp(), StatComponent->GetMaxHp(), StatComponent->GetCurrentStamina(), StatComponent->GetMaxStamina());
+		});
 
 }
 
