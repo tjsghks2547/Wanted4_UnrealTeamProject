@@ -12,6 +12,7 @@
 #include "Component/Ui_InterAction_Component.h"
 #include "Component/InventoryComponent.h"
 #include "UI/PlayerUIWidget.h"
+#include "UI/QuickSlotWidget.h"
 #include "Types/InterActionType.h"
 #include "KZPlayer/KZPlayerController.h"
 #include "HUD/IH_HUD.h"
@@ -162,6 +163,12 @@ AKZCharacterPlayer::AKZCharacterPlayer()
 		Ui_InterAction = Ui_InterActionRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> QuickSlot_InputActionRef(TEXT("/Game/Khazan/Input/Action/IA_QuickSlotButton.IA_QuickSlotButton"));
+	if (QuickSlot_InputActionRef.Object != NULL)
+	{
+		QuickSlot_InputAction = QuickSlot_InputActionRef.Object;
+	}
+
 	static ConstructorHelpers::FObjectFinder<UInputAction> DeadTestActionRef{
 	TEXT("/Game/Khazan/Input/Action/IA_DeadTest.IA_DeadTest")
 	};
@@ -218,7 +225,7 @@ void AKZCharacterPlayer::SetupPlayerUiWidget(UPlayerUIWidget* _InPlayerUiWidget)
 {
 	// 설정할 플레이어의 체력 및 최대 체력
 
-	StatComponent->SetUp_stat_Hp(1000, 1000);
+	StatComponent->SetUp_stat_Hp(700, 1000);
 	StatComponent->SetUp_stat_Stamina(100, 100);
 
 	if (_InPlayerUiWidget)
@@ -406,6 +413,15 @@ void AKZCharacterPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			this,
 			&AKZCharacterPlayer::InterAction
 		);
+
+		EnhancedInputComponent->BindAction(
+			QuickSlot_InputAction,
+			ETriggerEvent::Started,
+			this,
+			&AKZCharacterPlayer::QuickSlotUse
+		);
+
+
 
 		EnhancedInputComponent->BindAction(
 			LockOnAction,
@@ -700,6 +716,52 @@ void AKZCharacterPlayer::InventoryOpen()
 	AIHPlayerState* pPlayerState = GetPlayerState<AIHPlayerState>();
 
 	pPlayerController->Open_Inventory(pPlayerState->Get_InventoryComponent()->Get_ItemMap());
+
+}
+
+void AKZCharacterPlayer::QuickSlotUse()
+{
+	AIHPlayerState* pPlayerState = Cast<AIHPlayerState>(GetPlayerState());
+
+	/* 소비할려면 현재 사용하는 아이템의 이름을 알아야함. */
+
+	/* 그러면 플레이어 HUD-> MainUiWidget(PlayerWidget)-> Get_PlayerQuickSlotWidget 해서 가져오기*/
+	AKZPlayerController* pPlayerController = Cast<AKZPlayerController>(GetController());
+
+	AIH_HUD* pHUD = pPlayerController->Get_HUD();
+	UPlayerUIWidget* pPlayerUiWidget = pHUD->Get_MainUI_Widget();
+
+	UQuickSlotWidget* pQuickSlotWidget = pPlayerUiWidget->Get_QuickSlot();
+
+	FName CureentItemName = pQuickSlotWidget->Get_RowName();
+
+
+
+
+	TMap<FName, int32>& itemContainer = pPlayerState->Get_InventoryComponent()->Get_ItemMap();
+
+	if (itemContainer.Find(CureentItemName) != NULL)
+	{
+		if (itemContainer[CureentItemName] >= 1)
+		{
+			itemContainer[CureentItemName] -= 1;
+			pQuickSlotWidget->Change_Amount(itemContainer[CureentItemName]);
+
+			int32 Heal_Hp = StatComponent->GetCurrentHp() + 300;
+
+			if (Heal_Hp >= StatComponent->GetMaxHp())
+			{
+				Heal_Hp = StatComponent->GetMaxHp();
+			}
+
+			StatComponent->Update_Stat_Hp(Heal_Hp);
+
+			StatComponent->Delegate_OnHpChanged.Broadcast(Heal_Hp);
+
+
+		}
+
+	}
 
 }
 

@@ -144,6 +144,11 @@ protected:
 	TObjectPtr<class UInputAction> DeadTestAction;
 
 
+	// 5_26 추가 
+	UPROPERTY(VisibleAnywhere, Category = Input, BlueprintReadOnly)
+	TObjectPtr<class UInputAction> QuickSlot_InputAction;
+
+
 	void Move(const FInputActionValue& value);
 	void Sprint(const FInputActionValue& value);
 	void StopSprint(const FInputActionValue& value);
@@ -155,6 +160,7 @@ protected:
 	void StopGuard(const FInputActionValue& value);
 	void LockOn(const FInputActionValue& value);
 	void InventoryOpen();
+	void QuickSlotUse();
 
 	// 점프
 public:

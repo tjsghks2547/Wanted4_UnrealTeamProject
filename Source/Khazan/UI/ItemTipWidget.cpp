@@ -16,6 +16,18 @@ UItemTipWidget::UItemTipWidget(const FObjectInitializer& ObjectInitializer)
 	{
 		ItemData.DataTable = ItemDataTableRef.Object;
 	}
+
+	static ConstructorHelpers::FObjectFinder<UTexture2D> SlotImageTextureGreenRef(TEXT("/Game/UI/Inventory/ItemTips/UI_YH_Common_Tips_Quality_02.UI_YH_Common_Tips_Quality_02"));
+
+	if (SlotImageTextureGreenRef.Object != NULL)
+		ArrayBackGroundTexture.Push(SlotImageTextureGreenRef.Object);
+
+
+	static ConstructorHelpers::FObjectFinder<UTexture2D> SlotImageTextureOrangeRef(TEXT("/Game/UI/Inventory/ItemTips/UI_YH_Common_Tips_Quality_05.UI_YH_Common_Tips_Quality_05"));
+
+	if (SlotImageTextureOrangeRef.Object != NULL)
+		ArrayBackGroundTexture.Push(SlotImageTextureOrangeRef.Object);
+
 }
 
 void UItemTipWidget::NativeConstruct()
@@ -27,6 +39,10 @@ void UItemTipWidget::NativeConstruct()
 	
 	Text = Cast<UTextBlock>(GetWidgetFromName(TEXT("Item_Description_Text")));
 	ensureAlways(Text);
+
+	BackGround_Image = Cast<UImage>(GetWidgetFromName(TEXT("BackGround_Image")));
+	ensureAlways(BackGround_Image);
+
 }
 
 void UItemTipWidget::Update_ItemTipWidget(FName _rowName)
@@ -48,4 +64,27 @@ void UItemTipWidget::Update_ItemTipWidget(FName _rowName)
 	Text->SetText(RowData->Description);
 	
 
+	/* 배경 색 지정 */
+
+	switch (RowData->ItemType)
+	{
+	case EItemType::NONE:
+		break;
+	case EItemType::Consumable:
+	{
+		BackGround_Image->SetBrushFromTexture(ArrayBackGroundTexture[0]);
+	}
+	break;
+	case EItemType::Weapon:
+	{
+		BackGround_Image->SetBrushFromTexture(ArrayBackGroundTexture[1]);
+	}
+	break;
+	case EItemType::Armor:
+		break;
+	case EItemType::Etc:
+		break;
+	default:
+		break;
+	}
 }

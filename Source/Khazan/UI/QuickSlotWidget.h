@@ -25,6 +25,8 @@ protected:
 
 public:
 	void Set_Slot(FName _rowName, int32 _iAmount);
+	void Change_Amount(int32 _iAmount);
+	FName Get_RowName() { return ItemRowName; }
 
 protected:
 	UPROPERTY()
@@ -37,5 +39,13 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<class UTextBlock> AmountTextBlock;
+
+
+
+	UPROPERTY()
+	TObjectPtr<class UTexture2D> BlankImage;
+
+	UPROPERTY()
+	FName ItemRowName;
 
 };

@@ -80,6 +80,10 @@ void AKZMonsterCharacter::BeginPlay()
 
 	Cast<UPlayerHpProgressBarWidget>(Hp_Widget->GetUserWidgetObject())->Setup_Hp(100.f, 100.f);
 
+
+	Hp_Widget->GetWidget()->SetVisibility(ESlateVisibility::Hidden);
+	Stamina_Widget->GetWidget()->SetVisibility(ESlateVisibility::Hidden);
+
 }
 
 // Called every frame
@@ -167,6 +171,10 @@ void AKZMonsterCharacter::ProcessDamage(const FDamageData& DamageData)
 
 		/* 5_24 선환 추가*/
 		Cast<UPlayerHpProgressBarWidget>(Hp_Widget->GetUserWidgetObject())->Update_MonsterHpProgressHpBar(StatComponent->GetCurrentHp());
+		
+		/* 5_26 선환 추가*/
+		Hp_Widget->GetWidget()->SetVisibility(ESlateVisibility::Visible);
+		Stamina_Widget->GetWidget()->SetVisibility(ESlateVisibility::Visible);
 	}
 
 	if (StatComponent)
@@ -354,6 +362,10 @@ void AKZMonsterCharacter::IsAttackEnd()
 
 bool AKZMonsterCharacter::CanTargetLockOn()
 {
+	if (bIsDead || (StatComponent && StatComponent->GetCurrentHp() <= 0))
+	{
+		return false;
+	}
 	return true;
 }
 

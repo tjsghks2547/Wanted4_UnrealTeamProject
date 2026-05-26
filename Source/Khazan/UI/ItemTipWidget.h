@@ -35,4 +35,12 @@ protected:
 	TObjectPtr<class UTextBlock> Text;
 
 
+	UPROPERTY()
+	TObjectPtr<class UImage> BackGround_Image;
+
+
+	UPROPERTY()
+	TArray<class UTexture2D*> ArrayBackGroundTexture;
+
+
 };
