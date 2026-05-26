@@ -44,3 +44,15 @@ void UPlayerHpProgressBarWidget::UpdateHpProgressBar(int32 _iCurrentHp)
 	// 그러면 감소 구역 구하기
 
 }
+
+void UPlayerHpProgressBarWidget::Update_MonsterHpProgressHpBar(int32 _iCurrentHp)
+{
+	m_iCurrentHp = _iCurrentHp;
+	float fCurrentHp = m_iCurrentHp;
+	float fCurrentMaxHp = m_iMaxHp;
+
+
+	float fRatio = fCurrentHp / fCurrentMaxHp;
+
+	m_pHpProgressBar->SetPercent(fRatio);
+}
