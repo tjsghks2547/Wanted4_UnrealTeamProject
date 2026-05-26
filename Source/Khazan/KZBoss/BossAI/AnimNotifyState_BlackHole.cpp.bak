@@ -25,7 +25,7 @@ void UAnimNotifyState_BlackHole::NotifyTick(USkeletalMeshComponent* MeshComp, UA
 
 	if (!Boss) return;
 
-	PullStrength = 230.0f; // ÈíÀÔ ¼¼±â
+	PullStrength = 200.0f; // ÈíÀÔ ¼¼±â
 
 	FVector BossLoc = Boss->GetActorLocation();
 	

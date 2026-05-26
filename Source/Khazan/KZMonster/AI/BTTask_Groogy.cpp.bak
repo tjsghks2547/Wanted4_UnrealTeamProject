@@ -30,8 +30,4 @@ EBTNodeResult::Type UBTTask_Groogy::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 
 void UBTTask_Groogy::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-	if (OwnerComp.GetBlackboardComponent()->GetValueAsBool(FName("IsGroggy")) == false)
-	{
-		OwnerComp.OnTaskFinished(this, EBTNodeResult::Succeeded);
-	}
 }
