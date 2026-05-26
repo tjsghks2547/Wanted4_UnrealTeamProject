@@ -111,6 +111,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss State")
 	EBossPhase CurrentPhase;
 
+	// 마지막으로 대미지를 준 후 시간
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	float LastDamageTime = 0.0f;
+
 
 	// 재생할 몽타주를 저장하는 변수
 	UPROPERTY(BlueprintReadOnly, Category ="Combat")

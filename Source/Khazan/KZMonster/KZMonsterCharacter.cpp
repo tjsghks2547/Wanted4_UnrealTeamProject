@@ -167,6 +167,32 @@ void AKZMonsterCharacter::PlayLongRangeAttackMontage()
 
 }
 
+void AKZMonsterCharacter::PlayOpenningMontage()
+{
+	if (!OpenningMontage) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+	if (!AnimInstance) return;
+
+	AnimInstance->Montage_Play(OpenningMontage);
+
+	// 몽타주가 끝났을 때 람다함수 바인딩
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
+		{
+			if (AIC && BlackboardComp)
+			{
+				BlackboardComp->SetValueAsBool(FName("IsOpenning"), true);
+			}
+
+		});
+
+	// 몽타주가 끝났을 때, 호출될 델리게이트 설정
+	AnimInstance->Montage_SetEndDelegate(EndDelegate, OpenningMontage);
+
+}
+
 
 void AKZMonsterCharacter::ProcessDamage(const FDamageData& DamageData)
 {
@@ -322,6 +348,31 @@ void AKZMonsterCharacter::PlayDeathMontage()
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     // 상단에 추가
 	if (AIC) AIC->StopMovement();
+}
+
+void AKZMonsterCharacter::PlayGroggyMontage()
+{
+	if (!GroggyMontage) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		GetCharacterMovement()->StopMovementImmediately();
+
+		AnimInstance->Montage_Play(GroggyMontage);
+
+		// 몽타주가 끝났을 때 람다함수 바인딩
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
+			{
+				// 몽타주가 끝났을 때 그로기 상태 해제
+				BlackboardComp->SetValueAsBool(FName("IsGroggy"), false);
+			});
+
+		// 몽타주가 끝났을 때, 호출될 델리게이트 설정
+		AnimInstance->Montage_SetEndDelegate(EndDelegate, GroggyMontage);
+	}
+
 }
 
 

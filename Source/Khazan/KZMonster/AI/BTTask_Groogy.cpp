@@ -1,0 +1,34 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "BTTask_Groogy.h"
+#include "KZBoss/KZBossCharacter.h"
+#include "AIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "BehaviorTree/BTTaskNode.h"
+
+UBTTask_Groogy::UBTTask_Groogy()
+{
+}
+
+EBTNodeResult::Type UBTTask_Groogy::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	AAIController* AIController = OwnerComp.GetAIOwner();
+	AKZMonsterCharacter* Monster = Cast<AKZMonsterCharacter>(AIController->GetPawn().Get());
+
+	if (Monster)
+	{
+		if (OwnerComp.GetBlackboardComponent()->GetValueAsBool(FName("IsGroggy")))
+		{
+			Monster->PlayGroggyMontage();
+		
+			return EBTNodeResult::InProgress;
+		}
+	}
+
+	return EBTNodeResult::Failed;
+}
+
+void UBTTask_Groogy::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+{
+}

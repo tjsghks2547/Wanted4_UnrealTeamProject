@@ -56,20 +56,29 @@ public:
 	class UAnimMontage* AdditiveHitMontage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	class UAnimMontage* GroggyMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	class UAnimMontage* DeathMontage;
 
 	// 백스텝 공격 몽타주 변수 (에디터에서 설정 가능)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	class UAnimMontage* LongRangeAttackMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	class UAnimMontage* OpenningMontage;
 	
 	void Dead();
 
 	void PlayDeathMontage();
 
+	void PlayGroggyMontage();
+
 	void HitMontageEnd(UAnimMontage* TargetMontage, bool bInterrupted);
 
 	bool IsDeathAnimationDone() const { return bDeathAnimationDone;}
 
+	void PlayOpenningMontage();
 
 	// IKZAnimationAttackInterface을(를) 통해 상속됨
 	virtual void AttackCheck() override;

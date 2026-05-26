@@ -180,11 +180,13 @@ protected:
 	const float ChargeThreshold = 0.2f;
 
 	// 충돌판정
-protected:
+	//0526 임경우 수정: ProcessDamage()를 AnimNotifyState에서 접근하기 위해 protected -> Public으로 수정
+public:
 	// 데미지를 받으면 이 함수가 실행됨.
 	UFUNCTION(BlueprintCallable)
 	void ProcessDamage(const FDamageData& DamageData) override;
 
+protected:
 	void Dead();
 
 	// 죽음 이벤트를 위한 플래그
