@@ -14,4 +14,6 @@ class KHAZAN_API AKZGamemode : public AGameModeBase
 {
 	GENERATED_BODY()
 	
+protected:
+	void RestartPlayer(AController* NewPlayer) override;
 };

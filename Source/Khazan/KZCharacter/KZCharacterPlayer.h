@@ -12,9 +12,8 @@
 #include "../Interface/KZLockOnInterface.h"
 #include "KZCharacterPlayer.generated.h"
 
-//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLockOnStateChanged, bool /*bIsLockOn*/)
-//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLockOnStateChanged, bool /**/bIsLockOn)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLockOnStateChanged, bool, bInIsLockedOn);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnPlayerDeadDelegate, AKZCharacterPlayer* /*DeadPlayer*/);
 
 // 전방선언.
 class UInputAction;
@@ -41,6 +40,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnLockOnStateChanged OnLockOnStateChanged;
+	FOnPlayerDeadDelegate OnPlayerDead;
 
 protected:
 	// Called when the game starts or when spawned

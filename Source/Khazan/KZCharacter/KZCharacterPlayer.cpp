@@ -21,6 +21,9 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/OverlapResult.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+
 
 // Sets default values
 AKZCharacterPlayer::AKZCharacterPlayer()
@@ -159,8 +162,21 @@ AKZCharacterPlayer::AKZCharacterPlayer()
 		Ui_InterAction = Ui_InterActionRef.Object;
 	}
 	
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> ParryEffectRef{
+	TEXT("/Game/Effect/Parry_Effect.Parry_Effect")
+	};
+	if (ParryEffectRef.Succeeded())
+	{
+		ParryEffect = ParryEffectRef.Object;
+	}
 
-	
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> GuardEffectRef{
+	TEXT("/Game/Effect/Guard_Effect.Guard_Effect")
+	};
+	if (GuardEffectRef.Succeeded())
+	{
+		GuardEffect = GuardEffectRef.Object;
+	}
 }
 
 // Called when the game starts or when spawned
@@ -495,7 +511,7 @@ void AKZCharacterPlayer::Look(const FInputActionValue& value)
 		AddControllerYawInput(RotationValue.X * 0.7);
 
 		// 마우스를 올리면 위로 보도록 -1을 곱함.
-		AddControllerPitchInput((RotationValue.Y * -1) * 0.5);
+		AddControllerPitchInput((RotationValue.Y) * 0.5);
 	}
 
 }
@@ -645,7 +661,6 @@ void AKZCharacterPlayer::InventoryOpen()
 
 }
 
-
 void AKZCharacterPlayer::Jump()
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -791,9 +806,29 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 		// 저스트 가드 성공 시 넉백만 있고, 패널티 X
 		if (GuardDuration <= JustGuardWindow)
 		{
+			if (ParryEffect)
+			{
+				FVector SpawnLoc = GetActorLocation() + (GetActorForwardVector() * 5.0f) + FVector(0, 0, 50.0f);
+				UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+					GetWorld(),
+					ParryEffect,
+					SpawnLoc,
+					GetActorRotation()
+				);
+			}
 			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("Just Guard!!"));
 			LaunchCharacterNotify(500.0f);
 			return;
+		}
+		if (GuardEffect)
+		{
+			FVector SpawnLoc = GetActorLocation() + (GetActorForwardVector() * 5.0f) + FVector(0, 0, 50.0f);
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				GetWorld(),
+				GuardEffect,
+				SpawnLoc,
+				GetActorRotation()
+			);
 		}
 		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("Guard!!"));
 		StatComponent->Apply_Damage(DamageData.DamageAmount / 2);
@@ -832,7 +867,7 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 			return;
 		}
 
-		if (HitMontage && !AnimInstance->Montage_IsPlaying(HitMontage))
+		if (HitMontage /* && !AnimInstance->Montage_IsPlaying(HitMontage)*/)
 		{
 			GetCharacterMovement()->StopMovementImmediately();
 
@@ -859,6 +894,11 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 
 void AKZCharacterPlayer::Dead()
 {
+	if (!bIsDead)
+	{
+		return;
+	}
+
 	GetCharacterMovement()->StopMovementImmediately();
 	GetCharacterMovement()->DisableMovement();
 
@@ -866,6 +906,11 @@ void AKZCharacterPlayer::Dead()
 	{
 		PC->SetIgnoreMoveInput(true);
 		PC->SetIgnoreLookInput(true);
+	}
+
+	if (OnPlayerDead.IsBound())
+	{
+		OnPlayerDead.Broadcast(this);
 	}
 }
 
