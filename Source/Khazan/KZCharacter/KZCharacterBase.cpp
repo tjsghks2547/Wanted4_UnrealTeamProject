@@ -462,11 +462,13 @@ void AKZCharacterBase::OnWeaponOverlap(
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("공격 성공!"));
 
 	// 인터페이스를 이용해 무기의 데미지 데이터와 공격한 사람의 정보만 던져줌.
+	// 그로기 데미지까지 추가해서 몬스터에게 데미지 전달.
 	IKZDamageInterface* DamagebleTarget = Cast<IKZDamageInterface>(OtherActor);
 	if (DamagebleTarget)
 	{
 		FDamageData Data;
 		Data.DamageAmount = CurrentAttackDamage;
+		Data.GloggyDamage = CurrentAttackDamage / 0.5f;
 		Data.Attacker = this;
 
 		DamagebleTarget->ProcessDamage(Data);

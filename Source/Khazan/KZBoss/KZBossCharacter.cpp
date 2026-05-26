@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "KZBossCharacter.h"
@@ -8,13 +8,20 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "../Component/StatComponent.h"
 #include "Components/CapsuleComponent.h"
+#pragma region ì„ í™˜ ì¶”ê°€
+#include "Components/WidgetComponent.h"
+#include "KZPlayer/KZPlayerController.h"
+#include "HUD/IH_HUD.h"
+#include "UI/PlayerUIWidget.h"
+#include "UI/BossUiWidget.h"
+#pragma endregion 
 
 // Sets default values
 AKZBossCharacter::AKZBossCharacter()
-	// BackStepAttack ÀÌµ¿, »ó½Â ÈûÀÇ ±âº»°ª ÃÊ±âÈ­
+	// BackStepAttack ì´ë™, ìƒìŠ¹ í˜ì˜ ê¸°ë³¸ê°’ ì´ˆê¸°í™”
 	: Distance(500.0f), UpForce(500.0f), CurrentPhase(EBossPhase::Phase1A)
 {
-	// ºÎ¸ğ Å¬·¡½º(AKZMonsterCharacter)¿¡¼­ PawnSensingÀ» »ı¼ºÇÔ
+	// ë¶€ëª¨ í´ë˜ìŠ¤(AKZMonsterCharacter)ì—ì„œ PawnSensingì„ ìƒì„±í•¨
 	
 	PrimaryActorTick.bCanEverTick = true;
 	CurrentMovementSpeed = 0.0f;
@@ -22,22 +29,38 @@ AKZBossCharacter::AKZBossCharacter()
 	
 	//m_pStatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
 	StatComponent->SetUp_stat_Hp(100, 100);
+	StatComponent->SetUp_stat_Stamina(100, 100);
 
-	// AI È¸Àü ¹× ÀÌµ¿ ¼³Á¤
+	// AI íšŒì „ ë° ì´ë™ ì„¤ì •
 	bUseControllerRotationYaw = true;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->bUseControllerDesiredRotation = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 600.f, 0.f);
 	GetCharacterMovement()->MaxWalkSpeed = 600.f;
 
-	// ·çÆ® ¸ğ¼Ç Áß È¸Àü Çã¿ë
+	// ë£¨íŠ¸ ëª¨ì…˜ ì¤‘ íšŒì „ í—ˆìš©
 	GetCharacterMovement()->bAllowPhysicsRotationDuringAnimRootMotion = true;
+
+	Name = TEXT("Boss");
 }
 
 // Called when the game starts or when spawned
 void AKZBossCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	/* 5_26 ì„ í™˜ ì¶”ê°€ */
+	Hp_Widget->GetWidget()->SetVisibility(ESlateVisibility::Hidden);
+	Stamina_Widget->GetWidget()->SetVisibility(ESlateVisibility::Hidden);
+
+	/* 5_26 ì„ í™˜ ì¶”ê°€ */
+	AKZPlayerController* pKZPlayerController = Cast<AKZPlayerController>(GetWorld()->GetFirstPlayerController());
+	AIH_HUD* pIH_HUD = pKZPlayerController->Get_HUD();
+
+	pIH_HUD->Get_MainUI_Widget()->Set_Up_BossUi(
+		StatComponent->GetCurrentHp(), StatComponent->GetMaxHp(), StatComponent->GetCurrentStamina(), StatComponent->GetMaxStamina());
+
+
 }
 
 // Called every frame
@@ -45,7 +68,7 @@ void AKZBossCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// ÇöÀç ¼Óµµ¸¦ °è»êÇÏ¿© ÀúÀå (¾Ö´Ï¸ŞÀÌ¼Ç ºí·çÇÁ¸°Æ®¿¡¼­ »ç¿ëµÊ)
+	// í˜„ì¬ ì†ë„ë¥¼ ê³„ì‚°í•˜ì—¬ ì €ì¥ (ì• ë‹ˆë©”ì´ì…˜ ë¸”ë£¨í”„ë¦°íŠ¸ì—ì„œ ì‚¬ìš©ë¨)
 	//CurrentMovementSpeed = GetVelocity().Size();
 
 	if (bIsJumpingToPlayer)
@@ -58,13 +81,13 @@ void AKZBossCharacter::Tick(float DeltaTime)
 
 			float Distance2D = FVector::Dist2D(FVector(BossLoc.X, BossLoc.Y, 0), FVector(PlayerLoc.X,PlayerLoc.Y, 0));
 			float VerticalVel = GetCharacterMovement()->Velocity.Z;
-			// º¸½º°¡ ³»·Á°¡±â ½ÃÀÛÇß°í, ÇÃ·¹ÀÌ¾î ¸Ó¸® À§¿¡ µµ´ŞÇßÀ» ¶§
+			// ë³´ìŠ¤ê°€ ë‚´ë ¤ê°€ê¸° ì‹œì‘í–ˆê³ , í”Œë ˆì´ì–´ ë¨¸ë¦¬ ìœ„ì— ë„ë‹¬í–ˆì„ ë•Œ
 
 			FVector DirToPlayer = (PlayerLoc - BossLoc).GetSafeNormal();
 			DirToPlayer.Z = 0;
 	
-			// ÇöÀç ¼Óµµ Å©±â À¯ÁöÇÏ¸ç ¹æÇâ¸¸ ¼öÁ¤
-			float Speed = 1500.0f; // ÃÊ±â Á¡ÇÁ ¼Óµµ¿¡ ¸Â°Ô Á¶Àı
+			// í˜„ì¬ ì†ë„ í¬ê¸° ìœ ì§€í•˜ë©° ë°©í–¥ë§Œ ìˆ˜ì •
+			float Speed = 1500.0f; // ì´ˆê¸° ì í”„ ì†ë„ì— ë§ê²Œ ì¡°ì ˆ
 			GetCharacterMovement()->Velocity.X = DirToPlayer.X * Speed;
 			GetCharacterMovement()->Velocity.Y = DirToPlayer.Y * Speed;
 		}
@@ -94,7 +117,7 @@ void AKZBossCharacter::Landed(const FHitResult& Hit)
 }
 void AKZBossCharacter::PlayAttackMontage()
 {
-	// 1. À¯È¿¼º °Ë»ç (¾ÈÀüÇÑ ÇÁ·Î±×·¡¹Ö)
+	// 1. ìœ íš¨ì„± ê²€ì‚¬ (ì•ˆì „í•œ í”„ë¡œê·¸ë˜ë°)
 	if (!BasicAttackMontage || !BackStepAttackMontage) return;
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -103,7 +126,7 @@ void AKZBossCharacter::PlayAttackMontage()
 
 	int32 RandomIdx = 1;
 	
-	// 2. º¸½º¸¸ÀÇ °íÀ¯ ·ÎÁ÷: È®·ü¿¡ µû¸¥ °ø°İ ¼±ÅÃ
+	// 2. ë³´ìŠ¤ë§Œì˜ ê³ ìœ  ë¡œì§: í™•ë¥ ì— ë”°ë¥¸ ê³µê²© ì„ íƒ
 	if (CurrentPhase == EBossPhase::Phase1A)
 	{
 		RandomIdx = FMath::RandRange(1, 4);
@@ -118,18 +141,18 @@ void AKZBossCharacter::PlayAttackMontage()
 
 	if (RandomIdx == 4)
 	{
-		// ¹é½ºÅÜ °ø°İ ¼±ÅÃ
+		// ë°±ìŠ¤í… ê³µê²© ì„ íƒ
 		SelectedMontage = BackStepAttackMontage;
-		// ¹é½ºÅÜÀº ¼½¼Ç Á¡ÇÁ°¡ ÇÊ¿ä ¾øÀ¸¹Ç·Î NAME_None À¯Áö
+		// ë°±ìŠ¤í…ì€ ì„¹ì…˜ ì í”„ê°€ í•„ìš” ì—†ìœ¼ë¯€ë¡œ NAME_None ìœ ì§€
 	}
 	else if (RandomIdx == 5)
 	{
-		// Á¡ÇÁ °ø°İ ¼±ÅÃ
+		// ì í”„ ê³µê²© ì„ íƒ
 		SelectedMontage = JumpAttackMontage;
 	}
 	else
 	{
-		// ÀÏ¹İ °ø°İ(1~3) ¼±ÅÃ
+		// ì¼ë°˜ ê³µê²©(1~3) ì„ íƒ
 		SelectedMontage = BasicAttackMontage;
 		SectionName = FName(*FString::Printf(TEXT("Batk%d"), RandomIdx));
 	}
@@ -138,11 +161,11 @@ void AKZBossCharacter::PlayAttackMontage()
 	AnimInstance->Montage_Play(SelectedMontage);
 	AnimInstance->Montage_JumpToSection(SectionName, SelectedMontage);
 
-	// ¸ùÅ¸ÁÖ°¡ ³¡³µÀ» ¶§ ¶÷´ÙÇÔ¼ö ¹ÙÀÎµù
+	// ëª½íƒ€ì£¼ê°€ ëë‚¬ì„ ë•Œ ëŒë‹¤í•¨ìˆ˜ ë°”ì¸ë”©
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
 		{
-			// ÇÇ°İ ½Ã¿¡´Â IsAttackingÀ» false·Î ¹Ù²ÙÁö ¾ÊÀ½
+			// í”¼ê²© ì‹œì—ëŠ” IsAttackingì„ falseë¡œ ë°”ê¾¸ì§€ ì•ŠìŒ
 			if (!bInterrupted)
 			{
 				if (AIC && BlackboardComp)
@@ -153,7 +176,7 @@ void AKZBossCharacter::PlayAttackMontage()
 			}
 		});
 
-	// ¸ùÅ¸ÁÖ°¡ ³¡³µÀ» ¶§, È£ÃâµÉ µ¨¸®°ÔÀÌÆ® ¼³Á¤
+	// ëª½íƒ€ì£¼ê°€ ëë‚¬ì„ ë•Œ, í˜¸ì¶œë  ë¸ë¦¬ê²Œì´íŠ¸ ì„¤ì •
 	AnimInstance->Montage_SetEndDelegate(EndDelegate, SelectedMontage);
 
 }
@@ -165,7 +188,7 @@ void AKZBossCharacter::PlayJumpAttackMontage()
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
 	AnimInstance->Montage_Play(JumpAttackMontage);
-	// ¸ùÅ¸ÁÖ°¡ ³¡³µÀ» ¶§ ¶÷´ÙÇÔ¼ö ¹ÙÀÎµù
+	// ëª½íƒ€ì£¼ê°€ ëë‚¬ì„ ë•Œ ëŒë‹¤í•¨ìˆ˜ ë°”ì¸ë”©
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
 		{
@@ -175,7 +198,7 @@ void AKZBossCharacter::PlayJumpAttackMontage()
 			}
 		});
 
-	// ¸ùÅ¸ÁÖ°¡ ³¡³µÀ» ¶§, È£ÃâµÉ µ¨¸®°ÔÀÌÆ® ¼³Á¤
+	// ëª½íƒ€ì£¼ê°€ ëë‚¬ì„ ë•Œ, í˜¸ì¶œë  ë¸ë¦¬ê²Œì´íŠ¸ ì„¤ì •
 	AnimInstance->Montage_SetEndDelegate(EndDelegate, JumpAttackMontage);
 }
 
@@ -188,7 +211,7 @@ void AKZBossCharacter::PlayLongRangeAttackMontage()
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
 	AnimInstance->Montage_Play(LongRangeAttackMontage);
-	// ¸ùÅ¸ÁÖ°¡ ³¡³µÀ» ¶§ ¶÷´ÙÇÔ¼ö ¹ÙÀÎµù
+	// ëª½íƒ€ì£¼ê°€ ëë‚¬ì„ ë•Œ ëŒë‹¤í•¨ìˆ˜ ë°”ì¸ë”©
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
 		{
@@ -199,7 +222,7 @@ void AKZBossCharacter::PlayLongRangeAttackMontage()
 			}
 		});
 
-	// ¸ùÅ¸ÁÖ°¡ ³¡³µÀ» ¶§, È£ÃâµÉ µ¨¸®°ÔÀÌÆ® ¼³Á¤
+	// ëª½íƒ€ì£¼ê°€ ëë‚¬ì„ ë•Œ, í˜¸ì¶œë  ë¸ë¦¬ê²Œì´íŠ¸ ì„¤ì •
 	AnimInstance->Montage_SetEndDelegate(EndDelegate, LongRangeAttackMontage);
 	
 }
@@ -219,7 +242,7 @@ void AKZBossCharacter::ExecuteBackStep()
 	{
 		if (AIC->GetPathFollowingComponent())
 		{
-			// ÀÌµ¿ °¡ÀÌµå´Â ÇöÀç ÁøÇàÁßÀÎ ÀÌµ¿À» Áß´ÜÇÏ¿© ¹é½ºÅÜ µ¿ÀÛÀÌ ¿øÈ°ÇÏ°Ô ¼öÇàµÇµµ·Ï ÇÔ
+			// ì´ë™ ê°€ì´ë“œëŠ” í˜„ì¬ ì§„í–‰ì¤‘ì¸ ì´ë™ì„ ì¤‘ë‹¨í•˜ì—¬ ë°±ìŠ¤í… ë™ì‘ì´ ì›í™œí•˜ê²Œ ìˆ˜í–‰ë˜ë„ë¡ í•¨
 			AIC->GetPathFollowingComponent()->AbortMove(*AIC, FPathFollowingResultFlags::MovementStop);
 		}
 	}
@@ -242,28 +265,28 @@ void AKZBossCharacter::ExecuteDash()
 	AActor* TargetActor = Cast<AActor>(BlackboardComp->GetValueAsObject(FName("PlayerPos")));
 	if (!TargetActor) return;
 
-	this->MoveIgnoreActorAdd(TargetActor); // ¹°¸®Àû ÇÃ·¹ÀÌ¾î ¹«½Ã(°üÅë ÇÙ½É)
+	this->MoveIgnoreActorAdd(TargetActor); // ë¬¼ë¦¬ì  í”Œë ˆì´ì–´ ë¬´ì‹œ(ê´€í†µ í•µì‹¬)
 
 	FVector BossLoc = GetActorLocation();
 	FVector TargetLoc = TargetActor->GetActorLocation();
 	float DistanceToPlayer = FVector::Dist2D(BossLoc, TargetLoc);
 	FVector DashDir = (TargetLoc - BossLoc);
-	DashDir.Z = 0.0f;// ¼öÆò ÀÌµ¿À» À§ÇÑ ZÃà Á¦°Å
+	DashDir.Z = 0.0f;// ìˆ˜í‰ ì´ë™ì„ ìœ„í•œ Zì¶• ì œê±°
 	DashDir.Normalize();
 
-	// ¸ùÅ¸ÁÖ ½Ã°£ ÇÏµåÄÚµù: ¿ø·¡´Â µ¥ÀÌÅÍ ¾Ö¼ÂÀÌ³ª º¯¼ö·Î °ü¸®ÇÏ´Â °Ô ÁÁÀ½
+	// ëª½íƒ€ì£¼ ì‹œê°„ í•˜ë“œì½”ë”©: ì›ë˜ëŠ” ë°ì´í„° ì• ì…‹ì´ë‚˜ ë³€ìˆ˜ë¡œ ê´€ë¦¬í•˜ëŠ” ê²Œ ì¢‹ìŒ
 	float DashAnimDuration = 0.92f;
-	float RequiredSpeed = DistanceToPlayer / DashAnimDuration; // °Å = ¼Ó * ½Ã ÀÌ¿ë
+	float RequiredSpeed = DistanceToPlayer / DashAnimDuration; // ê±° = ì† * ì‹œ ì´ìš©
 	
 	GetCharacterMovement()->SetMovementMode(MOVE_Falling);
 
 	FVector LaunchVelocity = DashDir * RequiredSpeed + FVector(0, 0, DashUpForce);
 
-	// ÇÃ·¹ÀÌ¾î¿Í Ãæµ¹ ¹«½Ã
+	// í”Œë ˆì´ì–´ì™€ ì¶©ëŒ ë¬´ì‹œ
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	LaunchCharacter(LaunchVelocity, true, true);
 	
-	// ÇÃ·¹ÀÌ¾î¸¦ ¹Ù¶óº¸µµ·Ï
+	// í”Œë ˆì´ì–´ë¥¼ ë°”ë¼ë³´ë„ë¡
 	SetActorRotation(DashDir.Rotation());
 }
 
@@ -277,30 +300,30 @@ void AKZBossCharacter::ExecuteJump()
 	FVector StartLoc = GetActorLocation();
 	FVector PlayerLoc = TargetActor->GetActorLocation();
 
-	// 1. °ª ¼³Á¤
-	float TimeToArrive = 2.0f; // ¸ñÇ¥±îÁö °É¸®´Â ½Ã°£ (ÀÛÀ»¼ö·Ï ºü¸£°í °­·Â)
+	// 1. ê°’ ì„¤ì •
+	float TimeToArrive = 2.0f; // ëª©í‘œê¹Œì§€ ê±¸ë¦¬ëŠ” ì‹œê°„ (ì‘ì„ìˆ˜ë¡ ë¹ ë¥´ê³  ê°•ë ¥)
 	float JumpBoost = 2.0f;
-    float Gravity = GetWorld()->GetGravityZ() * -1.0f * JumpBoost; // Áß·Â°ª (º¸Åë 980)
+    float Gravity = GetWorld()->GetGravityZ() * -1.0f * JumpBoost; // ì¤‘ë ¥ê°’ (ë³´í†µ 980)
 
-	// 2. °¡·Î ÀÌµ¿ º¤ÅÍ °è»ê
+	// 2. ê°€ë¡œ ì´ë™ ë²¡í„° ê³„ì‚°
 	FVector LaunchVelXY = (PlayerLoc - StartLoc);
-	LaunchVelXY.Z = 0; // ¼öÆò °Å¸®¸¸ °è»ê
+	LaunchVelXY.Z = 0; // ìˆ˜í‰ ê±°ë¦¬ë§Œ ê³„ì‚°
 	float HegihtDiff = PlayerLoc.Z - StartLoc.Z;
 	LaunchVelXY /= TimeToArrive;
 
-	// 3. ¼¼·Î ¹ß»ç ¼Óµµ °è»ê (Æ÷¹°¼± °ø½Ä)
+	// 3. ì„¸ë¡œ ë°œì‚¬ ì†ë„ ê³„ì‚° (í¬ë¬¼ì„  ê³µì‹)
 	float HeightDiff = PlayerLoc.Z - StartLoc.Z;
 	float LaunchVelZ = (HeightDiff + (0.5f * Gravity * FMath::Square(TimeToArrive))) / TimeToArrive;
 	
-	// 4. Ä³¸¯ÅÍ ¹ß»ç
+	// 4. ìºë¦­í„° ë°œì‚¬
 	FVector FinalLaunchVelocity = LaunchVelXY + FVector(0, 0, LaunchVelZ);
 
 	GetCharacterMovement()->GravityScale = JumpBoost;
 
-	// Á¡ÇÁ Àü ¹«ºê¸ÕÆ® ¸ğµå¸¦ FallingÀ¸·Î º¯°æÇÏ¿© ¸¶Âû·Â ¹«½Ã
+	// ì í”„ ì „ ë¬´ë¸Œë¨¼íŠ¸ ëª¨ë“œë¥¼ Fallingìœ¼ë¡œ ë³€ê²½í•˜ì—¬ ë§ˆì°°ë ¥ ë¬´ì‹œ
 	GetCharacterMovement()->SetMovementMode(MOVE_Falling);
 
-	// ÇÃ·¹ÀÌ¾î¿Í Ãæµ¹ ¹«½Ã
+	// í”Œë ˆì´ì–´ì™€ ì¶©ëŒ ë¬´ì‹œ
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 
 	LaunchCharacter(FinalLaunchVelocity, true, true);
@@ -336,7 +359,7 @@ void AKZBossCharacter::ChangePhase()
 		break;
 	}
 
-	// ºí·¢º¸µå ÆäÀÌÁî ¾÷µ¥ÀÌÆ® 
+	// ë¸”ë™ë³´ë“œ í˜ì´ì¦ˆ ì—…ë°ì´íŠ¸ 
 	BlackboardComp->SetValueAsEnum(FName("CurrentPhase"), static_cast<uint8>(CurrentPhase));
 	//UE_LOG(LogTemp, Warning, TEXT("%d"), (int8)CurrentPhase);
 }
@@ -349,20 +372,20 @@ void AKZBossCharacter::PlayPhaseChangingAttackMontage()
 
 	AnimInstance->Montage_Play(PhaseChangingAttackMontage);
 
-	// ¸ùÅ¸ÁÖ°¡ ³¡³µÀ» ¶§ ¶÷´ÙÇÔ¼ö ¹ÙÀÎµù
+	// ëª½íƒ€ì£¼ê°€ ëë‚¬ì„ ë•Œ ëŒë‹¤í•¨ìˆ˜ ë°”ì¸ë”©
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
 		{
 			if (AIC && BlackboardComp)
 			{
-				this->ChangePhase();// CurrentPhase ¾÷µ¥ÀÌÆ® ¹× BT CurrentPhaseµµ ¾÷µ¥ÀÌÆ®
+				this->ChangePhase();// CurrentPhase ì—…ë°ì´íŠ¸ ë° BT CurrentPhaseë„ ì—…ë°ì´íŠ¸
 				BlackboardComp->SetValueAsBool(FName("IsAttacking"), false);
 				BlackboardComp->SetValueAsBool(FName("IsPhaseChanging"), false);
 				AIC->ClearFocus(EAIFocusPriority::Gameplay);
 			}
 		});
 
-	// ¸ùÅ¸ÁÖ°¡ ³¡³µÀ» ¶§, È£ÃâµÉ µ¨¸®°ÔÀÌÆ® ¼³Á¤
+	// ëª½íƒ€ì£¼ê°€ ëë‚¬ì„ ë•Œ, í˜¸ì¶œë  ë¸ë¦¬ê²Œì´íŠ¸ ì„¤ì •
 	AnimInstance->Montage_SetEndDelegate(EndDelegate, PhaseChangingAttackMontage);
 }
 
@@ -375,17 +398,17 @@ void AKZBossCharacter::ProcessDamage(const FDamageData& DamageData)
 	if (!bIsChanging && CurrentPhase == EBossPhase::Phase1A)
 	{
 		//(CurrentHP / MaxHP <= 0.6f)
-		// ÆäÀÌÁî 1A¿¡¼­¸¸ Ã¼·Â 60% ÀÌÇÏ·Î ¶³¾îÁö¸é ÆäÀÌÁî ÀüÈ¯ ½Ãµµ
+		// í˜ì´ì¦ˆ 1Aì—ì„œë§Œ ì²´ë ¥ 60% ì´í•˜ë¡œ ë–¨ì–´ì§€ë©´ í˜ì´ì¦ˆ ì „í™˜ ì‹œë„
 		if((StatComponent->GetCurrentHp() / StatComponent->GetMaxHp()) <= 0.6f)
 		{
 			BlackboardComp->SetValueAsBool(FName("IsPhaseChanging"), true);
 			//this->PlayPhaseChangingAttackMontage();
-			 // ¾Ö´Ï¸ŞÀÌ¼ÇÀÌ ³¡³ª¸é ChangePhase()°¡ È£ÃâµÇ¾î ÆäÀÌÁî ÀüÈ¯ ¹× ºí·¢º¸µå ¾÷µ¥ÀÌÆ®°¡ ÀÌ·ç¾îÁü
+			 // ì• ë‹ˆë©”ì´ì…˜ì´ ëë‚˜ë©´ ChangePhase()ê°€ í˜¸ì¶œë˜ì–´ í˜ì´ì¦ˆ ì „í™˜ ë° ë¸”ë™ë³´ë“œ ì—…ë°ì´íŠ¸ê°€ ì´ë£¨ì–´ì§
 		}
 	}
 
-	// Todo: Á¡½É ÀÌÈÄ ÁøÇà(ÇÇ°İ¸ğ¼ÇÀ¸·Î ÀÎÇÑ °ø°İ¸ğ¼Ç ²÷±è ¹®Á¦: ÇÇ°İ½¦ÀÌÅ© ¾Ö´Ï¸ŞÀÌ¼Ç ¾Ö¼Â ¼³Á¤¿¡¼­ 
-	// // idle³Ö¾ú´Âµ¥ Æò¼ÒÃ³·³ º¸½º°¡ ¼­ÀÖ°Å³ª ÀüÃ¼ µ¿ÀÛÀÌ ´Ùº¸ÀÓ)
+	// Todo: ì ì‹¬ ì´í›„ ì§„í–‰(í”¼ê²©ëª¨ì…˜ìœ¼ë¡œ ì¸í•œ ê³µê²©ëª¨ì…˜ ëŠê¹€ ë¬¸ì œ: í”¼ê²©ì‰ì´í¬ ì• ë‹ˆë©”ì´ì…˜ ì• ì…‹ ì„¤ì •ì—ì„œ 
+	// // idleë„£ì—ˆëŠ”ë° í‰ì†Œì²˜ëŸ¼ ë³´ìŠ¤ê°€ ì„œìˆê±°ë‚˜ ì „ì²´ ë™ì‘ì´ ë‹¤ë³´ì„)
 	//bool bIsAttacking = BlackboardComp->GetValueAsBool(FName("IsAttacking"));
 	//
 	//if (bIsAttacking)

@@ -922,6 +922,22 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 					SpawnLoc,
 					GetActorRotation()
 				);
+
+				// 저스트 가드 성공 시 공격자의 그로기게이지 감소.
+				// 그로기 데미지 = (몬스터) 스테미너 감소라고 가정.
+				// LastAttacker -> 공격자(몬스터)
+				// KZCollision.h에 있는 구조체를 만들어 데미지를 보내는 방식 재활용
+				// HP데미지 = 0, 그로기 데미지만 존재
+				IKZDamageInterface* DamagebleTarget = Cast<IKZDamageInterface>(LastAttacker);
+				if (DamagebleTarget)
+				{
+					FDamageData Data;
+					Data.DamageAmount = 0.0f;
+					Data.GloggyDamage = DamageData.DamageAmount / 2;
+					Data.Attacker = this;
+
+					DamagebleTarget->ProcessDamage(Data);
+				}
 			}
 			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("Just Guard!!"));
 			LaunchCharacterNotify(500.0f);

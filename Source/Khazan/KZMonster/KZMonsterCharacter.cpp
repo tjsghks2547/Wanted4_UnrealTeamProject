@@ -11,6 +11,14 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "UI/PlayerHpProgressBarWidget.h"
+#include "UI/PlayerHpProgressBarWidget_White.h"
+
+
+#pragma region 선환 추가
+#include "KZPlayer/KZPlayerController.h"
+#include "HUD/IH_HUD.h"
+#include "UI/PlayerUIWidget.h"
+#pragma endregion 
 
 // Sets default values
 AKZMonsterCharacter::AKZMonsterCharacter()
@@ -21,6 +29,9 @@ AKZMonsterCharacter::AKZMonsterCharacter()
 
 	StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
 	StatComponent->SetUp_stat_Hp(100, 100);
+
+	// 그로기 데미지 테스트로 스테미너 추가.
+	StatComponent->SetUp_stat_Stamina(100, 100);
 
 
 
@@ -64,6 +75,7 @@ AKZMonsterCharacter::AKZMonsterCharacter()
 		Stamina_Widget->SetWidgetClass(StaminaWidgetClass.Class);
 	}
 
+	Name = TEXT("Monster");
 }
 
 // Called when the game starts or when spawned
@@ -79,11 +91,12 @@ void AKZMonsterCharacter::BeginPlay()
 	}
 
 	Cast<UPlayerHpProgressBarWidget>(Hp_Widget->GetUserWidgetObject())->Setup_Hp(100.f, 100.f);
-
+	Cast<UPlayerHpProgressBarWidget_White>(Stamina_Widget->GetUserWidgetObject())->Setup_HpWhiteProgressBar(100.f,100.f);
 
 	Hp_Widget->GetWidget()->SetVisibility(ESlateVisibility::Hidden);
 	Stamina_Widget->GetWidget()->SetVisibility(ESlateVisibility::Hidden);
-
+	
+	StatComponent->Set_Name(TEXT("Monster"));
 }
 
 // Called every frame
@@ -167,20 +180,40 @@ void AKZMonsterCharacter::ProcessDamage(const FDamageData& DamageData)
 	if (StatComponent)
 	{
 		StatComponent->Apply_Damage(DamageData.DamageAmount);
+		// 스테미너 = 그로기 게이지라고 판단.
+		// 몬스터가 공격을 받거나, 플레이어가 저스트가드를 성공 시 그로기 게이지가 닳도록 설정.
+		StatComponent->Apply_Stamina(DamageData.GloggyDamage);
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Damage"));
 
-		/* 5_24 선환 추가*/
-		Cast<UPlayerHpProgressBarWidget>(Hp_Widget->GetUserWidgetObject())->Update_MonsterHpProgressHpBar(StatComponent->GetCurrentHp());
-		
-		/* 5_26 선환 추가*/
-		Hp_Widget->GetWidget()->SetVisibility(ESlateVisibility::Visible);
-		Stamina_Widget->GetWidget()->SetVisibility(ESlateVisibility::Visible);
+		if (Name == TEXT("Monster"))
+		{
+			/* 5_24 선환 추가*/
+			Cast<UPlayerHpProgressBarWidget>(Hp_Widget->GetUserWidgetObject())->Update_MonsterHpProgressHpBar(StatComponent->GetCurrentHp());
+			/* 5_26 선환 추가*/
+			Cast<UPlayerHpProgressBarWidget_White>(Stamina_Widget->GetUserWidgetObject())->Update_HpProgressHpBarWhite(StatComponent->GetCurrentStamina());
+
+			/* 5_26 선환 추가*/
+			Hp_Widget->GetWidget()->SetVisibility(ESlateVisibility::Visible);
+			Stamina_Widget->GetWidget()->SetVisibility(ESlateVisibility::Visible);
+		}
+
+		else if (Name == TEXT("Boss"))
+		{
+			AKZPlayerController* pKZPlayerController = Cast<AKZPlayerController>(GetWorld()->GetFirstPlayerController());
+			AIH_HUD* pIH_HUD = pKZPlayerController->Get_HUD();
+
+
+			pIH_HUD->Get_MainUI_Widget()->ApplyBossHpDamage_Ui(StatComponent->GetCurrentHp());
+			pIH_HUD->Get_MainUI_Widget()->ApplyBossStaminaDamage_Ui(StatComponent->GetCurrentStamina());
+
+		}
 	}
 
 	if (StatComponent)
 	{
 		//m_pStatComponent->Apply_Damage(DamageData.DamageAmount);
 		StatComponent->Delegate_OnHpChanged.Broadcast(StatComponent->GetCurrentHp());
+		//StatComponent->Delegate_OnStaminaChanged.Broadcast(StatComponent->GetCurrentStamina(), StatComponent->GetMaxStamina());
 
 		// 죽음 함수 호출
 		if (StatComponent->GetCurrentHp() <= 0)

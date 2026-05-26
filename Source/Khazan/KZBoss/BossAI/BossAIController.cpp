@@ -10,6 +10,12 @@
 #include "Perception/AISenseConfig_Sight.h" // UAISenseConfig_Sight 정의 포함
 #include "../../KZMonster/KZMonsterCharacter.h"
 
+#pragma region 선환 추가
+#include "KZPlayer/KZPlayerController.h"
+#include "HUD/IH_HUD.h"
+#include "UI/PlayerUIWidget.h"
+#pragma endregion 
+
 ABossAIController::ABossAIController()
 {
 	// Perception 컴포넌트 생성
@@ -52,12 +58,25 @@ void ABossAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Sti
 			{
 				BlackboardComp->SetValueAsBool(FName("IsReturning"), false); // 복귀 중단
 			}
+
+			/* 5_26 선환 추가 */
+			AKZPlayerController* pKZPlayerController = Cast<AKZPlayerController>(GetWorld()->GetFirstPlayerController());
+			AIH_HUD* pIH_HUD = pKZPlayerController->Get_HUD();
+
+			pIH_HUD->Get_MainUI_Widget()->RenderBossUi(ESlateVisibility::Visible);
+
 		}
 		// 플레이어가 감지 범위를 완전히 벗어났을 때 (SightRadius 설정 범위 초과)
 		else
 		{
 			//BlackboardComp->ClearValue(FName("PlayerPos"));
 			BlackboardComp->SetValueAsBool(FName("IsReturning"), true); // 즉시 복귀 상태 전환
+
+			/* 5_26 선환 추가 */
+			AKZPlayerController* pKZPlayerController = Cast<AKZPlayerController>(GetWorld()->GetFirstPlayerController());
+			AIH_HUD* pIH_HUD = pKZPlayerController->Get_HUD();
+
+			pIH_HUD->Get_MainUI_Widget()->RenderBossUi(ESlateVisibility::Hidden);
 		}
 	}
 }

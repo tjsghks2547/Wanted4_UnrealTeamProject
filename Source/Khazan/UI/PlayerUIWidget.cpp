@@ -15,6 +15,7 @@
 #include "InventoryWidget.h"
 #include "KZPlayer/KZPlayerController.h"
 #include "QuickSlotWidget.h"
+#include "BossUiWidget.h"
 
 
 
@@ -72,6 +73,10 @@ void UPlayerUIWidget::NativeConstruct()
 	QuickSlotWidget = Cast<UQuickSlotWidget>(GetWidgetFromName(TEXT("WBP_QuickSlot")));
 	ensureAlways(QuickSlotWidget);
 
+
+	/* Boss Ui 관련 */
+	BossUiWidget = Cast<UBossUiWidget>(GetWidgetFromName(TEXT("WBP_Boss_Ui")));
+	ensureAlways(BossUiWidget);
 #pragma endregion 
 
 
@@ -88,6 +93,7 @@ void UPlayerUIWidget::NativeConstruct()
 	PlayerInterActionDialogWidget->SetVisibility(ESlateVisibility::Collapsed);
 	InterActionKeyFWidget->SetVisibility(ESlateVisibility::Collapsed);
 	InventoryUiWidget->SetVisibility(ESlateVisibility::Collapsed);
+	BossUiWidget->SetVisibility(ESlateVisibility::Hidden);
 #pragma endregion 
 
 
@@ -230,5 +236,29 @@ void UPlayerUIWidget::RenderInventoryUI()
 	//GetOwningPlayer()->SetInputMode(UIOnlyInputMode);
 }
 
+void UPlayerUIWidget::RenderBossUi(ESlateVisibility _eSlateVisibility)
+{
 
+	BossUiWidget->SetVisibility(_eSlateVisibility);
+
+}
+
+void UPlayerUIWidget::ApplyBossHpDamage_Ui(float _DamageAmount)
+{
+	int Damage = _DamageAmount;
+
+	BossUiWidget->UpdateHpProgressBar(_DamageAmount);
+
+}
+
+void UPlayerUIWidget::ApplyBossStaminaDamage_Ui(float _DamageAmount)
+{
+	BossUiWidget->UpdateStaminaProgressBar(_DamageAmount);
+}
+
+void UPlayerUIWidget::Set_Up_BossUi(float fCurrentHp, float fMaxHp, float fCurrentStamina, float fMaxStamina)
+{
+	BossUiWidget->Setup_Hp(fCurrentHp, fMaxHp);
+	BossUiWidget->Setup_Stamina(fCurrentStamina, fMaxStamina);
+}
 
