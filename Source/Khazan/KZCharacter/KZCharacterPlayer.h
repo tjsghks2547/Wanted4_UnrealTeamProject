@@ -12,9 +12,8 @@
 #include "../Interface/KZLockOnInterface.h"
 #include "KZCharacterPlayer.generated.h"
 
-//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLockOnStateChanged, bool /*bIsLockOn*/)
-//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLockOnStateChanged, bool /**/bIsLockOn)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLockOnStateChanged, bool, bInIsLockedOn);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnPlayerDeadDelegate, AKZCharacterPlayer* /*DeadPlayer*/);
 
 // 전방선언.
 class UInputAction;
@@ -22,8 +21,6 @@ class UInputAction;
 /* 5_18 선환 추가 */
 enum class EInterActionType : uint8;
 enum class EInterAction_Key_Type : uint8;
-
-
 
 UCLASS()
 class KHAZAN_API AKZCharacterPlayer : 
@@ -41,12 +38,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnLockOnStateChanged OnLockOnStateChanged;
+	FOnPlayerDeadDelegate OnPlayerDead;
 
 protected:
 	// Called when the game starts or when spawned
 	// 입력 매핑 컨텍스트를 넣는데엔 beginplay
 	virtual void BeginPlay() override;
-
 
 	// IPlayerUiWidget_Interface을(를) 통해 상속됨  ( 5_11 선환 추가 ) 
 	void SetupPlayerUiWidget(UPlayerUIWidget* _InPlayerUiWidget) override;
@@ -58,10 +55,6 @@ public:
 	// Called to bind functionality to input
 	// 언리얼 엔진 인풋시스템에서 move와 look 함수를 서로 매핑 시켜주는것을 미리 완료시키는 역할을 할 예정.
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-
-	// 카메라
-	 
 	
 	// 인터페이스 함수 오버라이드
 	virtual FName GetTargetType() const override { return FName("Player"); }
@@ -147,7 +140,13 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = Input, BlueprintReadOnly)
 	TObjectPtr<class UInputAction> Ui_InterAction;
 
+	UPROPERTY(EditAnywhere, Category = Input, BlueprintReadOnly)
+	TObjectPtr<class UInputAction> DeadTestAction;
 
+
+	// 5_26 추가 
+	UPROPERTY(VisibleAnywhere, Category = Input, BlueprintReadOnly)
+	TObjectPtr<class UInputAction> QuickSlot_InputAction;
 
 
 	void Move(const FInputActionValue& value);
@@ -161,6 +160,7 @@ protected:
 	void StopGuard(const FInputActionValue& value);
 	void LockOn(const FInputActionValue& value);
 	void InventoryOpen();
+	void QuickSlotUse();
 
 	// 점프
 public:
@@ -264,4 +264,21 @@ protected:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly , Category = LockOn)
 	bool bIsLockOn = false;
+
+
+protected:
+	// 저스트 가드 이펙트
+	UPROPERTY(EditAnyWhere, Category = Effect)
+	TObjectPtr<class UNiagaraSystem> ParryEffect;
+
+	// 가드 이펙트
+	UPROPERTY(EditAnyWhere, Category = Effect)
+	TObjectPtr<class UNiagaraSystem> GuardEffect;
+
+	// 차징 이펙트
+	UPROPERTY(EditAnyWhere, Category = Effect)
+	TObjectPtr<class UNiagaraSystem> ChargeEffect;
+
+protected:
+	void PossessedBy(AController* NewController) override;
 };

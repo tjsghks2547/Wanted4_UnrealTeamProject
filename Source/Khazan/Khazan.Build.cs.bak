@@ -9,7 +9,7 @@ public class Khazan : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
 		PublicDependencyModuleNames.AddRange(new string[] { 
-			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "AIModule" , "UMG" });
+			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "AIModule" , "UMG", "NavigationSystem" });
 
 
         PublicIncludePaths.AddRange(new string[] { "Khazan" });

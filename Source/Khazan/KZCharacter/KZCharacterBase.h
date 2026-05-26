@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "../Interface/KZAnimationAttackInterface.h"
 #include "../Interface/KZDamageInterface.h"
+#include "../Data/KZAttackDataAsset.h"
 #include "KZCharacterBase.generated.h"
 
 UENUM()
@@ -28,12 +29,6 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-	// 컨트롤 데이터 설정.
-	// LockOn용으로 쓰기 좋아보임.
-	// 유저의 컨트롤 설정(카메라, 회전 등)을 한번에 바꾸는 용도로 사용.
-	//virtual void SetCharacterContolData(
-	//	const class UABCharacterControlData* InCharacterControlData);
 
 public:	
 	// Called every frame
@@ -121,8 +116,6 @@ protected:
 	UPROPERTY(EditAnywhere, category = Weapon)
 	TObjectPtr<class UBoxComponent> WeaponCollision;
 
-
-
 	UFUNCTION()
 	void OnWeaponOverlap(
 		UPrimitiveComponent * OverlappedComponent,
@@ -148,7 +141,6 @@ protected:
 	UFUNCTION()
 	FName DetermineDodgeSection(float Angle);
 
-
 // 피격
 protected:
 	UPROPERTY(EditAnywhere, Category = Hit)
@@ -157,9 +149,18 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hit)
 	TObjectPtr<AActor> LastAttacker;
 
-
-	// 점프
+// 점프
 protected:
 	UPROPERTY(EditAnywhere, Category = Jump)
 	UAnimMontage* JumpMontage;
+
+// 어택 데이터
+protected:
+	UPROPERTY(EditAnywhere, Category = Attack)
+	TObjectPtr <class UKZAttackDataAsset> AttackDataAsset;
+
+	float CurrentAttackDamage = 0.0f;
+	
+	void SetCurrentAttackDamage(FName AttackKey);
+
 };

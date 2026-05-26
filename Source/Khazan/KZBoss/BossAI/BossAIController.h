@@ -32,8 +32,17 @@ protected:
 
 	// 시야 범위 설정 가능하도록 변수화
 	UPROPERTY(EditAnywhere, Category = "AI")
-	float SightRadius = 1500.0f;
+	float MySightRadius = 2300.0f;
 
+	// 시야 범위 설정 가능하도록 변수화
+	UPROPERTY(EditAnywhere, Category = "AI")
+	float MyLoseSightRadius = 2500.0f;
+
+	// 시야 범위 설정 가능하도록 변수화
+	UPROPERTY(EditAnywhere, Category = "AI")
+	float MyAngleDegrees = 180.0f;
+
+	
 public:
 
 	// 보스가 스폰되어 이 컨트롤러가 빙의했을 때 실행

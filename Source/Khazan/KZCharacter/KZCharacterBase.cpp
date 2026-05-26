@@ -109,27 +109,6 @@ void AKZCharacterBase::BeginPlay()
 	
 }
 
-// 나중에 락온용으로 쓸 수 있을것으로 보임.
-//void AKZCharacterBase::SetCharacterContolData(const UABCharacterControlData* InCharacterControlData)
-//{
-//	// Pawn.
-//
-//	bUseControllerRotationYaw
-//		= InCharacterControlData->bUseControllerRotationYaw;
-//
-//	// CharacterMovement.
-//
-//	GetCharacterMovement()->bUseControllerDesiredRotation
-//		= InCharacterControlData->bUseControllerDesiredRotation;
-//
-//
-//	GetCharacterMovement()->bOrientRotationToMovement
-//		= InCharacterControlData->bOrientRotationToMovement;
-//
-//
-//	GetCharacterMovement()->RotationRate
-//		= InCharacterControlData->RotationRate;
-//}
 
 // Called every frame
 void AKZCharacterBase::Tick(float DeltaTime)
@@ -173,8 +152,10 @@ void AKZCharacterBase::AttackCheck()
 				{
 					ApplyStaminaTest(20.0f);
 					NextSection = *FString::Printf(TEXT("WeakAtk0%d"), CurrentCombo);
+					SetCurrentAttackDamage(NextSection);
 				}
 				AnimInstance->Montage_JumpToSection(NextSection, WeakAttackMontage);
+				
 			}
 			// 다음 공격 예약이 강공격인 경우.
 			else if (NextAttackType == EAttackType::Strong)
@@ -223,9 +204,7 @@ void AKZCharacterBase::ProcessAttackCommand(EAttackType AttackType)
 		if (HasEnoughStamina(RequiredStamina) == false)
 		{
 			SetStaminaRegenBlock(false);
-
 			return;
-
 		}
 
 		CurrentAttackType = AttackType;
@@ -251,8 +230,6 @@ void AKZCharacterBase::ProcessAttackCommand(EAttackType AttackType)
 			AttackCheck();
 		}
 	}
-
-
 }
 
 // 약공격 시작.
@@ -260,7 +237,6 @@ void AKZCharacterBase::WeakAttackBegin()
 {
 	CurrentCombo = 1;
 	
-
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && !AnimInstance->Montage_IsPlaying(WeakAttackMontage))
 	{
@@ -286,7 +262,6 @@ void AKZCharacterBase::WeakAttackBegin()
 // 차지어택 시작 함수.
 void AKZCharacterBase::ChargeWeakAttackBegin(bool bIsCharged)
 {
-
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && WeakAttackMontage)
 	{
@@ -302,17 +277,16 @@ void AKZCharacterBase::ChargeWeakAttackBegin(bool bIsCharged)
 			{
 				ApplyStaminaTest(30.0f);
 				JumpSection = *FString::Printf(TEXT("ChargeWeakAtk0%d"), ComboNum);
-				
+				SetCurrentAttackDamage(JumpSection);
 			}
 			else
 			{
 				ApplyStaminaTest(20.0f);
 				JumpSection = *FString::Printf(TEXT("WeakAtk0%d"), ComboNum);
-
+				SetCurrentAttackDamage(JumpSection);
 			}
 			AnimInstance->Montage_JumpToSection(JumpSection, WeakAttackMontage);
 		}
-
 	}
 }
 
@@ -328,6 +302,7 @@ void AKZCharacterBase::StrongAttackBegin()
 		// 몽타주 재생.
 		ApplyStaminaTest(30.0f);
 		AnimInstance->Montage_Play(StrongAttackMontage);
+		SetCurrentAttackDamage(TEXT("StrongAtk"));
 
 		// 몽타주 종료 이벤트에 등록할 델리게이트 설정.
 		FOnMontageEnded OnMontageEnded;
@@ -487,11 +462,13 @@ void AKZCharacterBase::OnWeaponOverlap(
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("공격 성공!"));
 
 	// 인터페이스를 이용해 무기의 데미지 데이터와 공격한 사람의 정보만 던져줌.
+	// 그로기 데미지까지 추가해서 몬스터에게 데미지 전달.
 	IKZDamageInterface* DamagebleTarget = Cast<IKZDamageInterface>(OtherActor);
 	if (DamagebleTarget)
 	{
 		FDamageData Data;
-		Data.DamageAmount = 50.0f;
+		Data.DamageAmount = CurrentAttackDamage;
+		Data.GloggyDamage = CurrentAttackDamage / 0.5f;
 		Data.Attacker = this;
 
 		DamagebleTarget->ProcessDamage(Data);
@@ -503,6 +480,7 @@ void AKZCharacterBase::PlayDodgeMontage(FName Section)
 {
 	if (DodgeMontage && bIsDodge == false)
 	{
+		ForceEndAttackState();
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		bIsDodge = true;
 		PlayAnimMontage(DodgeMontage, 1.0f, Section);
@@ -560,6 +538,22 @@ FName AKZCharacterBase::DetermineDodgeSection(float Angle)
 		return "Dodge_B";
 	}
 
+}
+
+void AKZCharacterBase::SetCurrentAttackDamage(FName AttackKey)
+{
+	if (AttackDataAsset && AttackDataAsset->AttackMap.Contains(AttackKey))
+	{
+		const FKZAttackDetails& Details = AttackDataAsset->AttackMap[AttackKey];
+		CurrentAttackDamage = Details.DamageAmount;
+		UE_LOG(LogTemp, Log, TEXT("공격 데이터 에셋에서 공격 키에 해당하는 데미지 설정: %s, 데미지: %f"), *AttackKey.ToString(), CurrentAttackDamage);
+	}
+	else
+	{
+		CurrentAttackDamage = 20.0f;
+
+		UE_LOG(LogTemp, Warning, TEXT("공격 데이터 에셋이 없거나 공격 키가 존재하지 않습니다: %s"), *AttackKey.ToString());
+	}
 }
 
 

@@ -9,6 +9,8 @@
 #include "../Component/StatComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
+#include "UI/PlayerHpProgressBarWidget.h"
 
 // Sets default values
 AKZMonsterCharacter::AKZMonsterCharacter()
@@ -19,6 +21,48 @@ AKZMonsterCharacter::AKZMonsterCharacter()
 
 	StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
 	StatComponent->SetUp_stat_Hp(100, 100);
+
+
+
+	// HP_Widget 
+	Hp_Widget = CreateDefaultSubobject<UWidgetComponent>(TEXT("HP_Widget"));
+	Hp_Widget->SetupAttachment(GetCapsuleComponent());
+	Hp_Widget->SetWidgetSpace(EWidgetSpace::Screen);
+
+	Hp_Widget->SetDrawSize(FVector2D(150.f, 10.f));
+	Hp_Widget->SetRelativeLocation(FVector(0.f, 0.f, 150.f));
+
+
+
+	// Stamina Widget
+	Stamina_Widget = CreateDefaultSubobject<UWidgetComponent>(TEXT("Stamina_Widget"));
+	Stamina_Widget->SetupAttachment(GetCapsuleComponent());
+	Stamina_Widget->SetWidgetSpace(EWidgetSpace::Screen);
+
+	Stamina_Widget->SetDrawSize(FVector2D(150.f, 10.f));
+	Stamina_Widget->SetRelativeLocation(FVector(0.f, 0.f, 140.f));
+
+
+
+	// Hp_Widget WBP 클래스 지정
+	static ConstructorHelpers::FClassFinder<UUserWidget> HP_WidgetClassRef(
+		TEXT("/Game/UI/MonsterUI/WBP_MonsterHpBarDamaged.WBP_MonsterHpBarDamaged_C"));
+
+	if (HP_WidgetClassRef.Succeeded())
+	{
+		Hp_Widget->SetWidgetClass(HP_WidgetClassRef.Class);
+	}
+
+
+
+	// Stamina WBP 클래스 지정
+	static ConstructorHelpers::FClassFinder<UUserWidget> StaminaWidgetClass(
+		TEXT("/Game/UI/MonsterUI/WBP_MonsterStaminaBar.WBP_MonsterStaminaBar_C"));
+
+	if (StaminaWidgetClass.Succeeded())
+	{
+		Stamina_Widget->SetWidgetClass(StaminaWidgetClass.Class);
+	}
 
 }
 
@@ -33,6 +77,12 @@ void AKZMonsterCharacter::BeginPlay()
 	{
 		BlackboardComp = AIC->GetBlackboardComponent();
 	}
+
+	Cast<UPlayerHpProgressBarWidget>(Hp_Widget->GetUserWidgetObject())->Setup_Hp(100.f, 100.f);
+
+
+	Hp_Widget->GetWidget()->SetVisibility(ESlateVisibility::Hidden);
+	Stamina_Widget->GetWidget()->SetVisibility(ESlateVisibility::Hidden);
 
 }
 
@@ -65,71 +115,43 @@ void AKZMonsterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 void AKZMonsterCharacter::PlayAttackMontage()
 {
 	// 기본 공격 몽타주 재생 로직
-	if (BasicAttackMontage)
-	{
-
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance)
-		{
-			// 현재는 간단하게 랜덤으로 공격 애니메이션 선택.
-			int32 RandomIdx = FMath::RandRange(1, 2);
-
-			FName SectionName = FName(*FString::Printf(TEXT("Batk%d"), RandomIdx));
-
-			AnimInstance->Montage_Play(BasicAttackMontage);
-
-			AnimInstance->Montage_JumpToSection(SectionName, BasicAttackMontage);
-
-
-
-
-			// 몽타주가 끝났을 때 람다함수 바인딩
-			FOnMontageEnded EndDelegate;
-			EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
-				{
-					if (AIC && BlackboardComp)
-					{
-						BlackboardComp->SetValueAsBool(FName("IsAttacking"), false);
-						AIC->ClearFocus(EAIFocusPriority::Gameplay);
-					}
-				});
-
-			// 몽타주가 끝났을 때, 호출될 델리게이트 설정
-			AnimInstance->Montage_SetEndDelegate(EndDelegate, BasicAttackMontage);
-		}
-	}
-}
-
-void AKZMonsterCharacter::PlayAttackMontage_Internal(UAnimMontage* MontageToPlay, FName SectionName)
-{
-	if (!MontageToPlay) return;
+	if (!BasicAttackMontage)return;
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (AnimInstance)
-	{
-		AnimInstance->Montage_Play(MontageToPlay);
-		if (!SectionName.IsNone())
-		{
-			AnimInstance->Montage_JumpToSection(SectionName, MontageToPlay);
-		}
+	if (!AnimInstance) return;
 
-		// 공통 종료 처리 (부모가 딱 한 번만 정의)
-		FOnMontageEnded EndDelegate;
-		EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
+	// 현재는 간단하게 랜덤으로 공격 애니메이션 선택.
+	int32 RandomIdx = FMath::RandRange(1, 2);
+
+	FName SectionName = FName(*FString::Printf(TEXT("Batk%d"), RandomIdx));
+
+	AnimInstance->Montage_Play(BasicAttackMontage);
+
+	AnimInstance->Montage_JumpToSection(SectionName, BasicAttackMontage);
+
+	// 몽타주가 끝났을 때 람다함수 바인딩
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
+		{			
+			// 피격 시에는 IsAttacking을 false로 바꾸지 않음
+			if (!bInterrupted)
 			{
-
-				if (BlackboardComp)
+				if (AIC && BlackboardComp)
 				{
 					BlackboardComp->SetValueAsBool(FName("IsAttacking"), false);
-				}
-				if (AIC)
-				{
 					AIC->ClearFocus(EAIFocusPriority::Gameplay);
 				}
-			});
+			}
+		});
 
-		AnimInstance->Montage_SetEndDelegate(EndDelegate, MontageToPlay);
-	}
+	// 몽타주가 끝났을 때, 호출될 델리게이트 설정
+	AnimInstance->Montage_SetEndDelegate(EndDelegate, BasicAttackMontage);
+
+}
+
+void AKZMonsterCharacter::PlayLongRangeAttackMontage()
+{
+
 }
 
 
@@ -146,6 +168,13 @@ void AKZMonsterCharacter::ProcessDamage(const FDamageData& DamageData)
 	{
 		StatComponent->Apply_Damage(DamageData.DamageAmount);
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Damage"));
+
+		/* 5_24 선환 추가*/
+		Cast<UPlayerHpProgressBarWidget>(Hp_Widget->GetUserWidgetObject())->Update_MonsterHpProgressHpBar(StatComponent->GetCurrentHp());
+		
+		/* 5_26 선환 추가*/
+		Hp_Widget->GetWidget()->SetVisibility(ESlateVisibility::Visible);
+		Stamina_Widget->GetWidget()->SetVisibility(ESlateVisibility::Visible);
 	}
 
 	if (StatComponent)
@@ -162,22 +191,38 @@ void AKZMonsterCharacter::ProcessDamage(const FDamageData& DamageData)
 		}
 
 		// 죽지않고 피해를 받은 경우
-		if (HitMontage)
+
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (!AnimInstance) return;
+
+		// 현재 공격 중인지 확인
+		bool bIsAttacking = BlackboardComp->GetValueAsBool(FName("IsAttacking"));
+
+
+		if (bIsAttacking)
 		{
+			if (!AdditiveHitMontage) return;
+
+			AnimInstance->Montage_Play(AdditiveHitMontage);
+
+			FOnMontageEnded AdditiveEndDelegate;
+			AdditiveEndDelegate.BindUObject(this, &AKZMonsterCharacter::HitMontageEnd);
+			AnimInstance->Montage_SetEndDelegate(AdditiveEndDelegate, AdditiveHitMontage);
+
+		}
+		else
+		{
+			if (!HitMontage) return;
+
 			GetCharacterMovement()->StopMovementImmediately();
-			//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 			PlayAnimMontage(HitMontage, 1.0f, SectionName);
 
-			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-			if (AnimInstance)
-			{
-				// 몽타주 종료 이벤트에 등록할 델리게이트 설정.
-				FOnMontageEnded OnMontageEnded;
-				OnMontageEnded.BindUObject(this, &AKZMonsterCharacter::HitMontageEnd);
-
-				// 몽타주 재생 종료 시 발행되는 이벤트에 등록.
-				AnimInstance->Montage_SetEndDelegate(OnMontageEnded, HitMontage);
-			}
+			// 몽타주 종료 이벤트에 등록할 델리게이트 설정.
+			FOnMontageEnded OnMontageEnded;
+			OnMontageEnded.BindUObject(this, &AKZMonsterCharacter::HitMontageEnd);
+			
+			// 몽타주 재생 종료 시 발행되는 이벤트에 등록.
+			AnimInstance->Montage_SetEndDelegate(OnMontageEnded, HitMontage);
 		}
 
 		// 컨트롤러에게 알림
@@ -246,6 +291,11 @@ void AKZMonsterCharacter::HitMontageEnd(UAnimMontage* TargetMontage, bool bInter
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	
 	BlackboardComp->SetValueAsBool(FName("IsHit"), false);
+	if (bInterrupted)
+	{
+		// 공격이 피격으로 끊긴 경우, 공격 상태도 false로 변경
+		BlackboardComp->SetValueAsBool(FName("IsAttacking"), false);
+	}
 }
 
 void AKZMonsterCharacter::AttackCheck()
@@ -281,6 +331,33 @@ void AKZMonsterCharacter::LaunchCharacterNotify(float LaunchForce)
 	}
 
 	//GetCharacterMovement()->MovementMode = EMovementMode::MOVE_None;
+}
+
+void AKZMonsterCharacter::IsAttackEnd()
+{
+	BlackboardComp->SetValueAsBool(FName("IsAttacking"), false);
+	// 공격중에 플레이어와 충돌을 무시했다면, 공격 종료 후 다시 충돌되도록 복구
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+
+	//무시했던 액터(플레이어) 목록에서 제거
+	if (BlackboardComp)
+	{
+		AActor * TargetActor = Cast<AActor>(BlackboardComp->GetValueAsObject(FName("PlayerPos")));
+		if (TargetActor)
+		{
+		    this->MoveIgnoreActorRemove(TargetActor);
+		}
+		
+		
+		// 무브먼트 모드 복구 (혹시 공중 공격 후였다면)
+		if (GetCharacterMovement()->MovementMode == MOVE_Falling)
+		{
+			GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+		}
+
+	}
+	
+	
 }
 
 bool AKZMonsterCharacter::CanTargetLockOn()

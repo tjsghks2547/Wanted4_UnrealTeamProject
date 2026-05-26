@@ -38,6 +38,16 @@ UItemWidget::UItemWidget(const FObjectInitializer& ObjectInitializer)
 	if (SlotImageTextureOrangeRef.Object != NULL)
 		ArrayBackGroundTexture.Push(SlotImageTextureOrangeRef.Object);
 
+	static ConstructorHelpers::FObjectFinder<UTexture2D> SlotImageTextureBlankRef(TEXT("/Game/UI/Inventory/UI_ICONbg_grey.UI_ICONbg_grey"));
+	if (SlotImageTextureBlankRef.Object != NULL)
+		ArrayBackGroundTexture.Push(SlotImageTextureBlankRef.Object);
+
+
+	static ConstructorHelpers::FObjectFinder<UTexture2D> Texture2DRef(TEXT("/Game/UI/Inventory/ItemTexture/BlankImage.BlankImage"));
+	if (Texture2DRef.Succeeded())
+	{
+		BlankImage = Texture2DRef.Object;
+	}
 
 
 	/* 아이템 데이터 관련 */
@@ -112,30 +122,47 @@ void UItemWidget::Slot_Update(FName _ItemKey, int32 _iAmount)
 		TEXT("Item Data Lookup")
 	);
 
-	ItemName = _ItemKey;
-
-	switch (RowData->ItemType)
+	if (_iAmount >= 1)
 	{
-	case EItemType::Consumable:
-	{
-		ItemBackGroundImage->SetBrushFromTexture(ArrayBackGroundTexture[0]);
-		ItemContextMenuWidget->Set_ItemType(_ItemKey, EItemType::Consumable, _iAmount);
-	}
-	break;
-	case EItemType::Weapon:
-		ItemBackGroundImage->SetBrushFromTexture(ArrayBackGroundTexture[1]);
-		ItemContextMenuWidget->Set_ItemType(_ItemKey, EItemType::Weapon, _iAmount);
+		ItemName = _ItemKey;
+
+		switch (RowData->ItemType)
+		{
+		case EItemType::Consumable:
+		{
+			ItemBackGroundImage->SetBrushFromTexture(ArrayBackGroundTexture[0]);
+			ItemContextMenuWidget->Set_ItemType(_ItemKey, EItemType::Consumable, _iAmount);
+		}
 		break;
-	case EItemType::Armor:
-		break;
-	case EItemType::Etc:
-		break;
-	default:
-		break;
+		case EItemType::Weapon:
+			ItemBackGroundImage->SetBrushFromTexture(ArrayBackGroundTexture[1]);
+			ItemContextMenuWidget->Set_ItemType(_ItemKey, EItemType::Weapon, _iAmount);
+			break;
+		case EItemType::Armor:
+
+			break;
+		case EItemType::Etc:
+
+			break;
+		default:
+			break;
+		}
+
+		ItemImage->SetBrushFromTexture(RowData->ItemImage);
+		AmountTextBlock->SetText(FText::AsNumber(_iAmount));
+
 	}
 
-	ItemImage->SetBrushFromTexture(RowData->ItemImage);
-	AmountTextBlock->SetText(FText::AsNumber(_iAmount));
+
+	else
+	{
+		ItemName = NAME_None;
+
+		ItemBackGroundImage->SetBrushFromTexture(ArrayBackGroundTexture[2]);
+		ItemImage->SetBrushFromTexture(BlankImage);
+		AmountTextBlock->SetText(FText::AsNumber(_iAmount));
+	}
+
 }
 
 void UItemWidget::OnItemImageClicked()

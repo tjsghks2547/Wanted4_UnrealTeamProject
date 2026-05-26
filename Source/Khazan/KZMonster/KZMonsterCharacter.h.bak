@@ -43,7 +43,8 @@ public:
 
 	virtual void PlayAttackMontage();
 
-	void PlayAttackMontage_Internal(UAnimMontage* MontageToPlay, FName SectionName);
+	virtual void PlayLongRangeAttackMontage();
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	class UAnimMontage* BasicAttackMontage;
@@ -53,6 +54,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	class UAnimMontage* DeathMontage;
+
+	// 백스텝 공격 몽타주 변수 (에디터에서 설정 가능)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	class UAnimMontage* LongRangeAttackMontage;
 	
 	void Dead();
 
@@ -79,6 +84,7 @@ protected:
 	TObjectPtr<class UStatComponent> StatComponent;
 
 	// IKZDamageInterface을(를) 통해 상속됨
+	UFUNCTION(BlueprintCallable)
 	void ProcessDamage(const FDamageData& DamageData) override;
 
 	UPROPERTY()
@@ -87,7 +93,7 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UBlackboardComponent> BlackboardComp;
 	
-		// IKZLockOnInterface을(를) 통해 상속됨
+	// IKZLockOnInterface을(를) 통해 상속됨
 	bool CanTargetLockOn() override;
 	FVector GetTargetLocation() override;
 
@@ -106,4 +112,14 @@ public:
 	FOnMonsterDamaged OnMonsterDamaged;
 	
 	
+/* 5_24 선환 추가*/
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+	TObjectPtr<class UWidgetComponent> Hp_Widget;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+	TObjectPtr<class UWidgetComponent> Stamina_Widget;
+
+
 };

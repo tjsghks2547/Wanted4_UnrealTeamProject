@@ -21,6 +21,12 @@ UQuickSlotWidget::UQuickSlotWidget(const FObjectInitializer& ObjectInitializer)
 	}
 
 
+	static ConstructorHelpers::FObjectFinder<UTexture2D> Texture2DRef(TEXT("/Game/UI/Inventory/ItemTexture/BlankImage.BlankImage"));
+
+	if (Texture2DRef.Succeeded())
+	{
+		BlankImage = Texture2DRef.Object;
+	}
 
 }
 
@@ -49,4 +55,20 @@ void UQuickSlotWidget::Set_Slot(FName _rowName, int32 _iAmount)
 	ItemImage->SetBrushFromTexture(RowData->ItemImage);
 	AmountTextBlock->SetText(FText::AsNumber(_iAmount));
 
+
+	ItemRowName = _rowName;
+}
+
+
+
+
+void UQuickSlotWidget::Change_Amount(int32 _iAmount)
+{
+	AmountTextBlock->SetText(FText::AsNumber(_iAmount));
+
+	if (_iAmount == 0)
+	{
+		ItemImage->SetBrushFromTexture(BlankImage);
+		ItemRowName = NAME_None;
+	}
 }
