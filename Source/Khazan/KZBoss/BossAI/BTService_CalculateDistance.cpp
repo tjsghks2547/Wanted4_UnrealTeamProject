@@ -5,6 +5,8 @@
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/Pawn.h"
+#include "KZBoss/KZBossCharacter.h"
+#include "Perception/AIPerceptionComponent.h"
 
 UBTService_CalculateDistance::UBTService_CalculateDistance()
 {
@@ -46,31 +48,24 @@ void UBTService_CalculateDistance::TickNode(UBehaviorTreeComponent& OwnerComp, u
 	BlackboardComp->SetValueAsFloat(FName("DistFromHome"), DistFromHome);
 
 	// 5. 활동 범위(PatrolRadius) 가져오기
-	Radius = BlackboardComp->GetValueAsFloat(FName("PatrolRadius"));
-	if (DistFromHome > Radius * 1.2f)
-	{
-		BlackboardComp->SetValueAsBool(FName("IsReturning"), true);
-	}
-
-
 	// 6. 범위를 벗어났는지 판단
-	//bool bIsFarFromHome = DistFromHome > Radius;
-	//BlackboardComp->SetValueAsBool(FName("IsFarFromHome"), bIsFarFromHome);
+	Radius = BlackboardComp->GetValueAsFloat(FName("PatrolRadius"));
 
-	float LeachThreshold = 500.0f; // 추격 유지 임계값
-	BlackboardComp->SetValueAsFloat(FName("LeachThreshold"), 500.0f);
+	// 활동범위 밖인 경우
+	if (DistFromHome > Radius)
+	{
+		if (Distance >= 500) {
+			BlackboardComp->SetValueAsBool(FName("IsReturning"), true);
+		}
 
-	// 활동 범위를 초과한 경우
-	//if (bIsFarFromHome)
-	//{
-	//	// 범위를 벗어났을 때
-	//	if (!TargetActor && (Distance > LeachThreshold))
-	//	{
-	//		// 플레이어와 거리가 멀어지면 복귀 상태로 전환
-	//		BlackboardComp->SetValueAsBool(FName("IsReturning"), true);
-	//		BlackboardComp->ClearValue(FName("PlayerPos"));
-	//	}
-	//}
+		if (!ControllingPawn->IsA(AKZBossCharacter::StaticClass())) // 일반 몬스터인 경우
+		{
+			// 잊어버리기
+			AActor* Target = Cast<AActor>(BlackboardComp->GetValueAsObject(FName("PlayerPos")));
+			AIController->GetPerceptionComponent()->ForgetActor(Target);
+			BlackboardComp->ClearValue(FName("PlayerPos"));
+		}
+	}
 
 
 	// [복귀 완료 판단] 복귀 중이고 집에 충분히 가까워졌다면 상태 해제

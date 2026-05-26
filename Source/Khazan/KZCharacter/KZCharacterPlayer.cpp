@@ -1107,12 +1107,12 @@ void AKZCharacterPlayer::PossessedBy(AController* NewController)
 	if (PC)
 	{
 		AIH_HUD* HUD = Cast<AIH_HUD>(PC->GetHUD());
-		if (HUD && HUD->GetPlayerUIWidget())
+		if (HUD && HUD->Get_MainUI_Widget())
 		{
-			SetupPlayerUiWidget(HUD->GetPlayerUIWidget());
+			SetupPlayerUiWidget(HUD->Get_MainUI_Widget());
 
-			HUD->GetPlayerUIWidget()->SetUp_Ui_Hp(StatComponent->GetCurrentHp(), StatComponent->GetMaxHp());
-			HUD->GetPlayerUIWidget()->SetUp_Ui_Stamina(StatComponent->GetCurrentStamina(), StatComponent->GetMaxStamina());
+			HUD->Get_MainUI_Widget()->SetUp_Ui_Hp(StatComponent->GetCurrentHp(), StatComponent->GetMaxHp());
+			HUD->Get_MainUI_Widget()->SetUp_Ui_Stamina(StatComponent->GetCurrentStamina(), StatComponent->GetMaxStamina());
 		}
 	}
 }

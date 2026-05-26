@@ -16,7 +16,7 @@ UBTTask_BasicBossAttack::UBTTask_BasicBossAttack()
 EBTNodeResult::Type UBTTask_BasicBossAttack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* AIController = OwnerComp.GetAIOwner();
-	AKZMonsterCharacter* Monster = Cast<AKZMonsterCharacter>(AIController->GetPawn());
+	AKZMonsterCharacter* Monster = Cast<AKZMonsterCharacter>(AIController->GetPawn().Get());
 
 	if (Monster)
 	{
