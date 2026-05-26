@@ -11,7 +11,14 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "UI/PlayerHpProgressBarWidget.h"
-#include "UI/PlayerStaminaProgressBarWidget.h"
+#include "UI/PlayerHpProgressBarWidget_White.h"
+
+
+#pragma region 선환 추가
+#include "KZPlayer/KZPlayerController.h"
+#include "HUD/IH_HUD.h"
+#include "UI/PlayerUIWidget.h"
+#pragma endregion 
 
 // Sets default values
 AKZMonsterCharacter::AKZMonsterCharacter()
@@ -68,6 +75,7 @@ AKZMonsterCharacter::AKZMonsterCharacter()
 		Stamina_Widget->SetWidgetClass(StaminaWidgetClass.Class);
 	}
 
+	Name = TEXT("Monster");
 }
 
 // Called when the game starts or when spawned
@@ -83,11 +91,12 @@ void AKZMonsterCharacter::BeginPlay()
 	}
 
 	Cast<UPlayerHpProgressBarWidget>(Hp_Widget->GetUserWidgetObject())->Setup_Hp(100.f, 100.f);
-
+	Cast<UPlayerHpProgressBarWidget_White>(Stamina_Widget->GetUserWidgetObject())->Setup_HpWhiteProgressBar(100.f,100.f);
 
 	Hp_Widget->GetWidget()->SetVisibility(ESlateVisibility::Hidden);
 	Stamina_Widget->GetWidget()->SetVisibility(ESlateVisibility::Hidden);
-
+	
+	StatComponent->Set_Name(TEXT("Monster"));
 }
 
 // Called every frame
@@ -176,12 +185,28 @@ void AKZMonsterCharacter::ProcessDamage(const FDamageData& DamageData)
 		StatComponent->Apply_Stamina(DamageData.GloggyDamage);
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Damage"));
 
-		/* 5_24 선환 추가*/
-		Cast<UPlayerHpProgressBarWidget>(Hp_Widget->GetUserWidgetObject())->Update_MonsterHpProgressHpBar(StatComponent->GetCurrentHp());
-		
-		/* 5_26 선환 추가*/
-		Hp_Widget->GetWidget()->SetVisibility(ESlateVisibility::Visible);
-		Stamina_Widget->GetWidget()->SetVisibility(ESlateVisibility::Visible);
+		if (Name == TEXT("Monster"))
+		{
+			/* 5_24 선환 추가*/
+			Cast<UPlayerHpProgressBarWidget>(Hp_Widget->GetUserWidgetObject())->Update_MonsterHpProgressHpBar(StatComponent->GetCurrentHp());
+			/* 5_26 선환 추가*/
+			Cast<UPlayerHpProgressBarWidget_White>(Stamina_Widget->GetUserWidgetObject())->Update_HpProgressHpBarWhite(StatComponent->GetCurrentStamina());
+
+			/* 5_26 선환 추가*/
+			Hp_Widget->GetWidget()->SetVisibility(ESlateVisibility::Visible);
+			Stamina_Widget->GetWidget()->SetVisibility(ESlateVisibility::Visible);
+		}
+
+		else if (Name == TEXT("Boss"))
+		{
+			AKZPlayerController* pKZPlayerController = Cast<AKZPlayerController>(GetWorld()->GetFirstPlayerController());
+			AIH_HUD* pIH_HUD = pKZPlayerController->Get_HUD();
+
+
+			pIH_HUD->Get_MainUI_Widget()->ApplyBossHpDamage_Ui(StatComponent->GetCurrentHp());
+			pIH_HUD->Get_MainUI_Widget()->ApplyBossStaminaDamage_Ui(StatComponent->GetCurrentStamina());
+
+		}
 	}
 
 	if (StatComponent)

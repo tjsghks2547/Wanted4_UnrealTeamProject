@@ -46,6 +46,13 @@ public:
 
 
 
+	/* 보스 UI 관련 */
+	void RenderBossUi(ESlateVisibility _eSlateVisibility);
+	void ApplyBossHpDamage_Ui(float _DamageAmount);
+	void ApplyBossStaminaDamage_Ui(float _DamageAmount);
+	void Set_Up_BossUi(float fCurrentHp, float fMaxHp, float fCurrentStamina, float fMaxStamina);
+
+
 	TObjectPtr<class UQuickSlotWidget> Get_QuickSlot() { return QuickSlotWidget; }
 
 
@@ -76,5 +83,8 @@ protected:
 	TObjectPtr<class UQuickSlotWidget> QuickSlotWidget;
 #pragma endregion
 
+#pragma region BossUi
+	TObjectPtr<class UBossUiWidget> BossUiWidget;
+#pragma endregion 
 
 };

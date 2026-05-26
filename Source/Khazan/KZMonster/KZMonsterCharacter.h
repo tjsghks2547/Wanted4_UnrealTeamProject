@@ -129,5 +129,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 	TObjectPtr<class UWidgetComponent> Stamina_Widget;
 
+	UPROPERTY(VisibleAnywhere)
+	FName Name;
+
 
 };

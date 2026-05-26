@@ -36,7 +36,7 @@ public:
 
 	void Apply_Damage(int32 _iDamageSize);
 	void Apply_Stamina(float _fStaminaConsumption);
-
+	void Set_Name(FName _Name) { Name = _Name; }
 	// 액션 도중에 스태미너 회복을 막아야해서 플래그 추가 - 현석.
 	UPROPERTY(EditAnywhere, Category = Stat)
 	bool bIsStaminaRegenBlocked = false;
@@ -86,6 +86,7 @@ private:
 	float m_fCurrentStamina = 0.0f;
 
 
-
+	UPROPERTY(EditAnywhere)
+	FName Name;
 
 };
