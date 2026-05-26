@@ -53,6 +53,9 @@ public:
 	class UAnimMontage* HitMontage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	class UAnimMontage* AdditiveHitMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	class UAnimMontage* DeathMontage;
 
 	// 백스텝 공격 몽타주 변수 (에디터에서 설정 가능)
@@ -74,6 +77,11 @@ public:
 	virtual void AttackEndCheck() override;
 
 	void LaunchCharacterNotify(float LaunchForce) override;
+
+	//Setter
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void IsAttackEnd();
+
 
 protected:
 

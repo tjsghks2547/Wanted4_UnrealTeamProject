@@ -19,7 +19,8 @@ public class Khazan : ModuleRules
 			"UMG", 
 			"NavigationSystem",
             "Slate",       // ก็ Slate UI
-			"SlateCore"
+			"SlateCore",
+            "Niagara"
         });
 
 

@@ -20,7 +20,7 @@ EBTNodeResult::Type UBTTask_BasicBossAttack::ExecuteTask(UBehaviorTreeComponent&
 
 	if (Monster)
 	{
-		AIController->StopMovement();
+		//AIController->StopMovement();
 
 		AActor* TargetActor = Cast<AActor>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(FName("PlayerPos")));
 		if (TargetActor)

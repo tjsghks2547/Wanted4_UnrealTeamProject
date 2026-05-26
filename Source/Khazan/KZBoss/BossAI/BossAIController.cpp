@@ -17,10 +17,10 @@ ABossAIController::ABossAIController()
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
 
 	// 시야(Sight) 설정
-	SightConfig->SightRadius = 2300.0f; // 감지 범위
-	SightConfig->LoseSightRadius = 2500.0f; // 감지 해제 범위
-	SightConfig->PeripheralVisionAngleDegrees = 180.0f; // 시야각(양옆 45도 씩 총 360도)
-	SightConfig->SetMaxAge(1.0f); // 타겟을 놓친 후 기억하는 시간
+	SightConfig->SightRadius = MySightRadius; // 감지 범위: 보스 2300.0f;
+	SightConfig->LoseSightRadius = MyLoseSightRadius; // 감지 해제 범위: 보스 2500.0f;
+	SightConfig->PeripheralVisionAngleDegrees = MyAngleDegrees;  // 시야각(양옆 45도 씩 총 360도): 보스 180.0f;
+	SightConfig->SetMaxAge(0.0f); // 타겟을 놓친 후 기억하는 시간
 
 	// 감지 대상 설정 (기본적으로 모두 감지하도록 설정)
 	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
@@ -40,13 +40,23 @@ void ABossAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Sti
 		// 감지 성공 여부 확인
 		if (Stimulus.WasSuccessfullySensed())
 		{
+			// 플레이어와 집(HomePos) 사이의 거리를 체크
+			FVector HomePos = BlackboardComp->GetValueAsVector(FName("HomePos"));
+			float DistFromHomeToPlayer = FVector::Dist(Actor->GetActorLocation(), HomePos);
+			float MaxRadius = BlackboardComp->GetValueAsFloat(FName("PatrolRadius"));
+			
 			BlackboardComp->SetValueAsObject(FName("PlayerPos"), Actor);
-			BlackboardComp->SetValueAsBool(FName("IsReturning"), false); // 복귀 중단
+			
+			// 플레이어가 활동 범위 안에 있을 때만 타겟으로 등록
+			if (DistFromHomeToPlayer <= MaxRadius)
+			{
+				BlackboardComp->SetValueAsBool(FName("IsReturning"), false); // 복귀 중단
+			}
 		}
 		// 플레이어가 감지 범위를 완전히 벗어났을 때 (SightRadius 설정 범위 초과)
 		else
 		{
-			BlackboardComp->ClearValue(FName("PlayerPos"));
+			//BlackboardComp->ClearValue(FName("PlayerPos"));
 			BlackboardComp->SetValueAsBool(FName("IsReturning"), true); // 즉시 복귀 상태 전환
 		}
 	}

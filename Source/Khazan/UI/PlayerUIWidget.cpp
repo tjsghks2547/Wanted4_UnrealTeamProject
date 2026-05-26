@@ -109,6 +109,8 @@ void UPlayerUIWidget::UpdateProgressBarHp(int32 _iCurrentHp)
 {
 	WidgetHpProgressBar->UpdateHpProgressBar(_iCurrentHp);
 	WidgetHpWhiteProgressBar->Update_HpProgressHpBarWhite(_iCurrentHp);
+
+	UpdateHp(_iCurrentHp);
 }
 
 
@@ -117,6 +119,12 @@ void UPlayerUIWidget::SetUp_Ui_Hp(int32 _iCurrentHp, int32 _iMaxHp)
 {
 	WidgetHpProgressBar->Setup_Hp(_iCurrentHp, _iMaxHp);
 	WidgetHpWhiteProgressBar->Setup_HpWhiteProgressBar(_iCurrentHp, _iMaxHp);
+
+	// 5_26 선환 추가 
+	CurrentHpText->SetText(FText::AsNumber(_iCurrentHp));
+	MaxHpText->SetText(FText::AsNumber(_iMaxHp));
+
+	WidgetHpWhiteProgressBar->Update_HpProgressHpBarWhite(_iCurrentHp);
 }
 
 void UPlayerUIWidget::SetUp_Ui_Stamina(float _fCurrentStamina, float _fMaxStamina)

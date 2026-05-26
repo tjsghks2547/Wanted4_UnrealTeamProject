@@ -54,7 +54,7 @@ void UInventoryWidget::UpdateInventory(TMap<FName, int32>& _ItemMapContainer)
 
 
 	/* 여기서는 이제 해당 ui를 rendering 할지 말지를 결정하는 형태 */
-
+	ItemTipWidget->SetVisibility(ESlateVisibility::Hidden);
 
 
 }

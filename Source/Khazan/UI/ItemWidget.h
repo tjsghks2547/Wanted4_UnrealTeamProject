@@ -67,6 +67,9 @@ protected:
 	UPROPERTY()
 	TObjectPtr<class UItemContextMenuWidget> ItemContextMenuWidget;
 
+	UPROPERTY()
+	TObjectPtr<class UTexture2D> BlankImage;
+
 protected:
 	// 바인딩할 함수 선언
 	UFUNCTION()

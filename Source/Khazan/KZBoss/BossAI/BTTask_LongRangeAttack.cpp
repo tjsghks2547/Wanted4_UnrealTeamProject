@@ -34,7 +34,7 @@ EBTNodeResult::Type UBTTask_LongRangeAttack::ExecuteTask(UBehaviorTreeComponent&
 		// 몽타주 실행
 		Monster->PlayLongRangeAttackMontage();
 
-		return EBTNodeResult::InProgress;
+		return EBTNodeResult::Succeeded;
 	}
 
 	return EBTNodeResult::Failed;
@@ -42,6 +42,15 @@ EBTNodeResult::Type UBTTask_LongRangeAttack::ExecuteTask(UBehaviorTreeComponent&
 
 void UBTTask_LongRangeAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
+	Super::TickTask(OwnerComp, NodeMemory, DeltaSeconds);
+
+	// 블랙보드의 IsAttacking 키가 false가 되면 태스크 종료 (몽타주 종료 시 캐릭터에서 false로 변경함)
+	bool bIsAttacking = OwnerComp.GetBlackboardComponent()->GetValueAsBool(FName("IsAttacking"));
+	if (!bIsAttacking)
+	{
+		// 애니메이션이 끝날 때까지 BT 대기
+		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+	}
 }
 
 void UBTTask_LongRangeAttack::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
