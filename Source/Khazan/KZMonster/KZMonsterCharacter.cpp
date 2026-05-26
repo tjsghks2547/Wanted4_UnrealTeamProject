@@ -9,6 +9,8 @@
 #include "../Component/StatComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
+#include "UI/PlayerHpProgressBarWidget.h"
 
 // Sets default values
 AKZMonsterCharacter::AKZMonsterCharacter()
@@ -19,6 +21,48 @@ AKZMonsterCharacter::AKZMonsterCharacter()
 
 	StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
 	StatComponent->SetUp_stat_Hp(100, 100);
+
+
+
+	// HP_Widget 
+	Hp_Widget = CreateDefaultSubobject<UWidgetComponent>(TEXT("HP_Widget"));
+	Hp_Widget->SetupAttachment(GetCapsuleComponent());
+	Hp_Widget->SetWidgetSpace(EWidgetSpace::Screen);
+
+	Hp_Widget->SetDrawSize(FVector2D(150.f, 10.f));
+	Hp_Widget->SetRelativeLocation(FVector(0.f, 0.f, 150.f));
+
+
+
+	// Stamina Widget
+	Stamina_Widget = CreateDefaultSubobject<UWidgetComponent>(TEXT("Stamina_Widget"));
+	Stamina_Widget->SetupAttachment(GetCapsuleComponent());
+	Stamina_Widget->SetWidgetSpace(EWidgetSpace::Screen);
+
+	Stamina_Widget->SetDrawSize(FVector2D(150.f, 10.f));
+	Stamina_Widget->SetRelativeLocation(FVector(0.f, 0.f, 140.f));
+
+
+
+	// Hp_Widget WBP 클래스 지정
+	static ConstructorHelpers::FClassFinder<UUserWidget> HP_WidgetClassRef(
+		TEXT("/Game/UI/MonsterUI/WBP_MonsterHpBarDamaged.WBP_MonsterHpBarDamaged_C"));
+
+	if (HP_WidgetClassRef.Succeeded())
+	{
+		Hp_Widget->SetWidgetClass(HP_WidgetClassRef.Class);
+	}
+
+
+
+	// Stamina WBP 클래스 지정
+	static ConstructorHelpers::FClassFinder<UUserWidget> StaminaWidgetClass(
+		TEXT("/Game/UI/MonsterUI/WBP_MonsterStaminaBar.WBP_MonsterStaminaBar_C"));
+
+	if (StaminaWidgetClass.Succeeded())
+	{
+		Stamina_Widget->SetWidgetClass(StaminaWidgetClass.Class);
+	}
 
 }
 
@@ -33,6 +77,8 @@ void AKZMonsterCharacter::BeginPlay()
 	{
 		BlackboardComp = AIC->GetBlackboardComponent();
 	}
+
+	Cast<UPlayerHpProgressBarWidget>(Hp_Widget->GetUserWidgetObject())->Setup_Hp(100.f, 100.f);
 
 }
 
@@ -119,6 +165,9 @@ void AKZMonsterCharacter::ProcessDamage(const FDamageData& DamageData)
 	{
 		StatComponent->Apply_Damage(DamageData.DamageAmount);
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Damage"));
+
+		/* 5_24 선환 추가*/
+		Cast<UPlayerHpProgressBarWidget>(Hp_Widget->GetUserWidgetObject())->Update_MonsterHpProgressHpBar(StatComponent->GetCurrentHp());
 	}
 
 	if (StatComponent)

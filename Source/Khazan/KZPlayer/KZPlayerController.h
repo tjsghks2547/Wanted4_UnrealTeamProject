@@ -32,6 +32,7 @@ public:
 	void Open_Inventory(TMap<FName, int32>& _ItemMapContainer);
 	void Set_InputUi_IMC();
 	void Set_InputGame_IMC();
+	TObjectPtr<class AIH_HUD> Get_HUD() { return HUD; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category = Input, BlueprintReadOnly)
