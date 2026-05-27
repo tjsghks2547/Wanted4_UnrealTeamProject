@@ -107,6 +107,12 @@ void ATreasureBox::Tick(float DeltaTime)
 						UTreasureBox_AnimInstance* pAnimInstance = Cast<UTreasureBox_AnimInstance>(GetMesh()->GetAnimInstance());
 						pAnimInstance->Set_BoxStatue(true);
 						HasPlayedAnimation = true;
+
+						/* 5월 26일 추가 */
+						pPlayer->Set_Current_OverlapTypes(EInterActionType::None);
+						pPlayer->Render_InterActionUi(EInterActionType::Item, ESlateVisibility::Hidden);
+						/* ---------------------- */
+
 						SpawnDropItem();
 					}
 
@@ -128,7 +134,7 @@ void ATreasureBox::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 void ATreasureBox::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor->ActorHasTag(TEXT("Player")))
+	if (OtherActor->ActorHasTag(TEXT("Player")) && HasPlayedAnimation == false)
 	{
 		AKZCharacterPlayer* pPlayer = Cast<AKZCharacterPlayer>(OtherActor);
 
@@ -142,7 +148,7 @@ void ATreasureBox::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* O
 
 void ATreasureBox::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (OtherActor->ActorHasTag(TEXT("Player")))
+	if (OtherActor->ActorHasTag(TEXT("Player")) && HasPlayedAnimation == false)
 	{
 		AKZCharacterPlayer* pPlayer = Cast<AKZCharacterPlayer>(OtherActor);
 

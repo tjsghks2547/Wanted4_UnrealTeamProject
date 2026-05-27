@@ -204,8 +204,9 @@ void AKZCharacterPlayer::BeginPlay()
 	// 리스폰 시 초기화 해야함.
 	if (StatComponent)
 	{
-		StatComponent->SetUp_stat_Hp(1000, 1000);
-		StatComponent->SetUp_stat_Stamina(100, 100);
+		// 5월 26일 선환 수정 (  SetupPlayerUiWidget에서 설정 하기 ) 
+		//StatComponent->SetUp_stat_Hp(1000, 1000);
+		//StatComponent->SetUp_stat_Stamina(100, 100);
 	}
 
 
@@ -225,7 +226,7 @@ void AKZCharacterPlayer::SetupPlayerUiWidget(UPlayerUIWidget* _InPlayerUiWidget)
 {
 	// 설정할 플레이어의 체력 및 최대 체력
 
-	StatComponent->SetUp_stat_Hp(700, 1000);
+	StatComponent->SetUp_stat_Hp(1000, 1000);
 	StatComponent->SetUp_stat_Stamina(100, 100);
 
 	if (_InPlayerUiWidget)
