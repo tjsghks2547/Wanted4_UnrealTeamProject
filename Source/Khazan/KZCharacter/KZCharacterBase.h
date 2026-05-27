@@ -9,6 +9,9 @@
 #include "../Data/KZAttackDataAsset.h"
 #include "KZCharacterBase.generated.h"
 
+class UCameraShakeBase;
+class UNiagaraComponent;
+
 UENUM()
 enum class EAttackType : uint8
 {
@@ -163,4 +166,16 @@ protected:
 	
 	void SetCurrentAttackDamage(FName AttackKey);
 
+	// 카메라 쉐이크
+protected:
+	UPROPERTY(EditAnywhere, Category = Effect)
+	TSubclassOf<class UCameraShakeBase> HitCameraShakeClass;
+
+	// 이펙트
+protected:
+		UPROPERTY(EditAnywhere, Category = Effect)
+		TObjectPtr<class UNiagaraSystem> AttackEffect;
+
+		UPROPERTY(VisibleAnywhere, Category = Effect)
+		TObjectPtr<UNiagaraComponent> WeaponTrailComponent;
 };

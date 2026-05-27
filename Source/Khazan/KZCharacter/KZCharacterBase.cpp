@@ -6,6 +6,11 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/BoxComponent.h"
 #include "../Collision/KZCollision.h"
+#include "GameFramework/PlayerController.h"
+#include "Components/CapsuleComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+#include "NiagaraComponent.h"
 
 // Sets default values
 AKZCharacterBase::AKZCharacterBase()
@@ -46,6 +51,19 @@ AKZCharacterBase::AKZCharacterBase()
 	);
 	WeaponCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("WeaponCollision"));
 
+	WeaponTrailComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WeaponTrailComponent"));
+	WeaponTrailComponent->SetupAttachment(Weapon, TEXT("Weapon_R_Trail"));
+	WeaponTrailComponent->SetAutoActivate(false);
+
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> AttackEffectRef{
+	TEXT("/Game/Map/VFX/Trail/NS_Trail2.NS_Trail2")
+	};
+	if (AttackEffectRef.Succeeded())
+	{
+		AttackEffect = AttackEffectRef.Object;
+		WeaponTrailComponent->SetAsset(AttackEffect);
+	}
+
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> WeaponMeshRef(
 		TEXT("/Game/Khazan/Weapon/Khazan_GS_Weapon.Khazan_GS_Weapon")
 	);
@@ -65,8 +83,6 @@ AKZCharacterBase::AKZCharacterBase()
 
 		Weapon->SetSkeletalMesh(WeaponMesh.Get());
 		Weapon->SetupAttachment(GetMesh(), TEXT("Weapon_R"));
-
-
 	}
 
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DodgeMontageRef(
@@ -100,6 +116,10 @@ AKZCharacterBase::AKZCharacterBase()
 	{
 		JumpMontage = JumpMontageRef.Object;
 	}
+
+	static ConstructorHelpers::FClassFinder<UCameraShakeBase> HitCameraShakeRef(
+		TEXT("/Game/Khazan/Blueprint/CS_Hit.CS_Hit_C")
+	);
 }
 
 // Called when the game starts or when spawned
@@ -394,29 +414,33 @@ void AKZCharacterBase::ForceEndAttackState()
 // 피격 시 피격 애니메이션에서 설정한 노티파이로 캐릭터가 뒤로 밀림.
 void AKZCharacterBase::LaunchCharacterNotify(float LaunchForce)
 {
-	if (GetCharacterMovement()->MovementMode == EMovementMode::MOVE_None)
-	{
-		GetCharacterMovement()->MovementMode = EMovementMode::MOVE_Flying;
-	} 
+	FVector LaunchDir;
 
 	if (LastAttacker)
 	{
-		FVector LaunchDir = GetActorLocation() - LastAttacker->GetActorLocation();
-
-		LaunchDir.Z = 0.0f;
-		LaunchDir.Normalize();
-
-
-
-		LaunchCharacter((LaunchDir * LaunchForce * 3) + FVector(0.0f,0.0f,30.0f), true, false);
+		LaunchDir = GetActorLocation() - LastAttacker->GetActorLocation();
 	}
 	else
 	{
-		FVector Forward = GetActorForwardVector();
-		LaunchCharacter(-1 * Forward * LaunchForce, true, false);
+		LaunchDir = -1 * GetActorForwardVector();
 	}
 
-	//GetCharacterMovement()->MovementMode = EMovementMode::MOVE_None;
+	LaunchDir.Z = 0.0f;
+	LaunchDir.Normalize();
+
+	// 바닥 정보를 가져옵니다.
+	FFindFloorResult FloorResult;
+	GetCharacterMovement()->FindFloor(GetCapsuleComponent()->GetComponentLocation(), FloorResult, false);
+
+	if (FloorResult.IsWalkableFloor())
+	{
+		// 수평 넉백 방향을 바닥의 평면(Normal)에 투영합니다.
+		LaunchDir = FVector::VectorPlaneProject(LaunchDir, FloorResult.HitResult.Normal).GetSafeNormal();
+	}
+
+	float FinalForce = LaunchForce * 3.0f;
+	// Z축으로 강제로 뜨는 힘을 없애고 바닥을 따라 미끄러지도록 합니다.
+	LaunchCharacter(LaunchDir * FinalForce, true, false);
 }
 
 // 가드 몽타주 실행 함수.
@@ -428,7 +452,6 @@ void AKZCharacterBase::PlayGuardMontage()
 		AnimInstance->Montage_Play(GuardMontage);
 		GetCharacterMovement()->MaxWalkSpeed = 300.0f;
 		bIsGuarding = true;
-
 	}
 }
 
@@ -436,11 +459,19 @@ void AKZCharacterBase::PlayGuardMontage()
 void AKZCharacterBase::EnableWeaponCollision()
 {
 	WeaponCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	if (WeaponTrailComponent)
+	{
+		WeaponTrailComponent->Activate(true);
+	}
 }
 
 void AKZCharacterBase::DisableWeaponCollision()
 {
 	WeaponCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (WeaponTrailComponent)
+	{
+		WeaponTrailComponent->Deactivate();
+	}
 }
 
 // 무기와 상대가 충돌했을 경우에 실행되는 함수.
@@ -473,6 +504,14 @@ void AKZCharacterBase::OnWeaponOverlap(
 
 		DamagebleTarget->ProcessDamage(Data);
 	}
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+
+	if(PC && HitCameraShakeClass)
+	{
+		PC->ClientStartCameraShake(HitCameraShakeClass, 1.0f);
+	}
+
 }
 
 // 회피 몽타주 실행 함수.

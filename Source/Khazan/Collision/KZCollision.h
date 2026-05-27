@@ -29,6 +29,9 @@ struct FDamageData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameData)
 	float GloggyDamage = 0.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameData)
+	bool DotDamage = false;
+
 	EHitIntensity Intensity = EHitIntensity::None;
 	EAttackSwingDir SwingDir = EAttackSwingDir::None;
 	//EAttackType AttackType;
