@@ -167,6 +167,32 @@ void AKZMonsterCharacter::PlayLongRangeAttackMontage()
 
 }
 
+void AKZMonsterCharacter::PlayOpenningMontage()
+{
+	if (!OpenningMontage) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+	if (!AnimInstance) return;
+
+	AnimInstance->Montage_Play(OpenningMontage);
+
+	// 몽타주가 끝났을 때 람다함수 바인딩
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
+		{
+			if (AIC && BlackboardComp)
+			{
+				BlackboardComp->SetValueAsBool(FName("IsOpenning"), true);
+			}
+
+		});
+
+	// 몽타주가 끝났을 때, 호출될 델리게이트 설정
+	AnimInstance->Montage_SetEndDelegate(EndDelegate, OpenningMontage);
+
+}
+
 
 void AKZMonsterCharacter::ProcessDamage(const FDamageData& DamageData)
 {
@@ -184,6 +210,12 @@ void AKZMonsterCharacter::ProcessDamage(const FDamageData& DamageData)
 		// 몬스터가 공격을 받거나, 플레이어가 저스트가드를 성공 시 그로기 게이지가 닳도록 설정.
 		StatComponent->Apply_Stamina(DamageData.GloggyDamage);
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Damage"));
+
+		if (StatComponent->GetCurrentStamina() <= 0 && BlackboardComp &&
+			!BlackboardComp->GetValueAsBool(FName("IsGroggy")))
+		{
+			BlackboardComp->SetValueAsBool(FName("IsGroggy"), true);
+		}
 
 		if (Name == TEXT("Monster"))
 		{
@@ -322,6 +354,41 @@ void AKZMonsterCharacter::PlayDeathMontage()
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     // 상단에 추가
 	if (AIC) AIC->StopMovement();
+}
+
+void AKZMonsterCharacter::PlayGroggyMontage()
+{
+	if (!GroggyMontage) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		GetCharacterMovement()->StopMovementImmediately();
+
+		AnimInstance->Montage_Play(GroggyMontage);
+
+		// 몽타주가 끝났을 때 람다함수 바인딩
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
+			{
+				// 몽타주가 끝났을 때 그로기 상태 해제
+				if (BlackboardComp)
+				{
+					BlackboardComp->SetValueAsBool(FName("IsGroggy"), false);
+					BlackboardComp->SetValueAsBool(FName("IsAttacking"), false);
+				}
+
+				// 그로기 종료 후 스태미나(그로기 게이지) 초기화
+				if (StatComponent)
+				{
+					StatComponent->Update_Stat_Stamina(StatComponent->GetMaxStamina());
+				}
+			});
+
+		// 몽타주가 끝났을 때, 호출될 델리게이트 설정
+		AnimInstance->Montage_SetEndDelegate(EndDelegate, GroggyMontage);
+	}
+
 }
 
 

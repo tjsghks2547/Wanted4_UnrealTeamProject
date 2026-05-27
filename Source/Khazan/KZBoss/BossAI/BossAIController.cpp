@@ -72,11 +72,20 @@ void ABossAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Sti
 			//BlackboardComp->ClearValue(FName("PlayerPos"));
 			BlackboardComp->SetValueAsBool(FName("IsReturning"), true); // 즉시 복귀 상태 전환
 
-			/* 5_26 선환 추가 */
-			AKZPlayerController* pKZPlayerController = Cast<AKZPlayerController>(GetWorld()->GetFirstPlayerController());
-			AIH_HUD* pIH_HUD = pKZPlayerController->Get_HUD();
-
-			pIH_HUD->Get_MainUI_Widget()->RenderBossUi(ESlateVisibility::Hidden);
+			// 5_26 경우 추가: 아래 if문들
+			if (Cast<AKZBossCharacter>(GetPawn()))
+			{
+				/* 5_26 선환 추가 */
+				AKZPlayerController* pKZPlayerController = Cast<AKZPlayerController>(GetWorld()->GetFirstPlayerController());
+				if (pKZPlayerController)
+				{
+					AIH_HUD* pIH_HUD = pKZPlayerController->Get_HUD();
+					if (pIH_HUD && pIH_HUD->Get_MainUI_Widget())
+					{
+						pIH_HUD->Get_MainUI_Widget()->RenderBossUi(ESlateVisibility::Hidden);
+					}
+				}
+			}
 		}
 	}
 }
