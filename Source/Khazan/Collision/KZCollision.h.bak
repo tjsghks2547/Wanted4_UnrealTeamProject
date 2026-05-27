@@ -21,11 +21,14 @@ struct FDamageData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameData)
-	float DamageAmount = 0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameData)
+	float DamageAmount = 0.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameData)
 	AActor* Attacker = nullptr;
-	
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameData)
+	float GloggyDamage = 0.0f;
+
 	EHitIntensity Intensity = EHitIntensity::None;
 	EAttackSwingDir SwingDir = EAttackSwingDir::None;
 	//EAttackType AttackType;

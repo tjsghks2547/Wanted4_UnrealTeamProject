@@ -6,7 +6,10 @@
 #include "GameFramework/Character.h"
 #include "../Interface/KZAnimationAttackInterface.h"
 #include "../Interface/KZDamageInterface.h"
+#include "../Data/KZAttackDataAsset.h"
 #include "KZCharacterBase.generated.h"
+
+class UCameraShakeBase;
 
 UENUM()
 enum class EAttackType : uint8
@@ -28,12 +31,6 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-	// 컨트롤 데이터 설정.
-	// LockOn용으로 쓰기 좋아보임.
-	// 유저의 컨트롤 설정(카메라, 회전 등)을 한번에 바꾸는 용도로 사용.
-	//virtual void SetCharacterContolData(
-	//	const class UABCharacterControlData* InCharacterControlData);
 
 public:	
 	// Called every frame
@@ -92,6 +89,9 @@ protected:
 	// 공격 도중에 모션을 끊고 움직이고 싶은 경우.
 	void AttackEndCheck() override;
 
+	// 공격 상태를 완전히 초기화 (캔슬 시 사용)
+	void ForceEndAttackState();
+
 	// IKZAnimationAttackInterface을(를) 통해 상속됨
 	void LaunchCharacterNotify(float LaunchForce) override;
 
@@ -118,8 +118,6 @@ protected:
 	UPROPERTY(EditAnywhere, category = Weapon)
 	TObjectPtr<class UBoxComponent> WeaponCollision;
 
-
-
 	UFUNCTION()
 	void OnWeaponOverlap(
 		UPrimitiveComponent * OverlappedComponent,
@@ -145,7 +143,6 @@ protected:
 	UFUNCTION()
 	FName DetermineDodgeSection(float Angle);
 
-
 // 피격
 protected:
 	UPROPERTY(EditAnywhere, Category = Hit)
@@ -153,5 +150,25 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hit)
 	TObjectPtr<AActor> LastAttacker;
+
+// 점프
+protected:
+	UPROPERTY(EditAnywhere, Category = Jump)
+	UAnimMontage* JumpMontage;
+
+// 어택 데이터
+protected:
+	UPROPERTY(EditAnywhere, Category = Attack)
+	TObjectPtr <class UKZAttackDataAsset> AttackDataAsset;
+
+	float CurrentAttackDamage = 0.0f;
+	
+	void SetCurrentAttackDamage(FName AttackKey);
+
+	// 카메라 쉐이크
+protected:
+	UPROPERTY(EditAnywhere, Category = Effect)
+	TSubclassOf<class UCameraShakeBase> HitCameraShakeClass;
+
 
 };

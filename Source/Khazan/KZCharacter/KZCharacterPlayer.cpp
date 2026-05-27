@@ -27,6 +27,7 @@
 #include "NiagaraSystem.h"
 #include "../Game/KZGamemode.h"
 #include "Components/CapsuleComponent.h"
+#include "Interface/IInteractableTarget.h"
 
 // Sets default values
 AKZCharacterPlayer::AKZCharacterPlayer()
@@ -46,8 +47,14 @@ AKZCharacterPlayer::AKZCharacterPlayer()
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(GetRootComponent());
 	SpringArm->TargetArmLength = 400.0f;
-	SpringArm->ProbeSize = 12.0f;
+	SpringArm->ProbeSize = 5.0f;
 	SpringArm->bUsePawnControlRotation = true;
+
+	SpringArm->bEnableCameraLag = true;
+	SpringArm->CameraLagSpeed = 10.0f;
+
+	SpringArm->bEnableCameraRotationLag = true;
+	SpringArm->CameraRotationLagSpeed = 15.0f;
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Player Camera"));
 	Camera->SetupAttachment(SpringArm);
@@ -283,13 +290,48 @@ void AKZCharacterPlayer::Tick(float DeltaTime)
 		{
 			LockOnTarget = nullptr;
 			OnLockOnStateChanged.Broadcast(false);
+
+			// 스프링암 위치 원래대로 복구.
+			SpringArm->TargetArmLength = FMath::FInterpTo(SpringArm->TargetArmLength, 400.0f, DeltaTime, 5.0f);
+			SpringArm->SocketOffset = FMath::VInterpTo(SpringArm->SocketOffset, FVector::ZeroVector, DeltaTime, 5.0f);
 			return;
 		}
 
+		float TargetHeight = 100.0f;
+		if (ACharacter* TargetCharacter = Cast<ACharacter>(LockOnTarget))
+		{
+			TargetHeight = TargetCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.0f;
+		}
+
+		// 보스 or 일반몬스터에 따라 락온 카메라의 위치 변경.
+		bool bIsBoss = false;
+		
+		// 타겟 타입 확인. 
+		if (IIInteractableTarget* TargetInterface = Cast<IIInteractableTarget>(LockOnTarget))
+		{
+			bIsBoss = (TargetInterface->GetTargetType() == FName("Boss"));
+		}
+
+		// 높이 차이 확인
+		float HeightDiff = LockOnTarget->GetActorLocation().Z - GetActorLocation().Z;
+		float SizeMultiplier = bIsBoss ? 2.0f : 1.0f;
+
+		// 보스가 높이 뛸수록 1.0에 가까워짐.
+		float HeightAlpha = FMath::Clamp(HeightDiff / (500.0f * SizeMultiplier), 0.0f, 1.0f);
+
+		// 스프링 암 조정
+		float TargetArmLength = 400.0f + (HeightAlpha * (bIsBoss ? 300.0f : 100.0f));
+		SpringArm->TargetArmLength = FMath::FInterpTo(SpringArm->TargetArmLength, TargetArmLength, DeltaTime, 5.0f);
+
+		FVector TargetSocketOffset = FVector(0, 0, 100.0f + HeightAlpha * 60.0f);
+		SpringArm->SocketOffset = FMath::VInterpTo(SpringArm->SocketOffset, TargetSocketOffset, DeltaTime, 5.0f);
+
+
 		// 회전값 계산.
 		// 락온 타겟의 위치를 기준으로 z 방향으로 + 50만큼 올림 -> 타겟의 머리 쪽을 보도록함.
-		FVector TargetLoc = LockOnTarget->GetActorLocation() + FVector(0, 0, -250.0f);
-		FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), TargetLoc);
+
+		FVector TargetLoc = LockOnTarget->GetActorLocation() + FVector(0, 0, TargetHeight * 0.15f * -1);
+		FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(Camera->GetComponentLocation(), TargetLoc);
 
 		// 컨트롤러의 회전값 가져오기.
 		FRotator CurrentControlRotation = GetControlRotation();
@@ -300,6 +342,11 @@ void AKZCharacterPlayer::Tick(float DeltaTime)
 		{
 			PC->SetControlRotation(TargetRotation);
 		}
+	}
+	else
+	{
+		SpringArm->TargetArmLength = FMath::FInterpTo(SpringArm->TargetArmLength, 400.0f, DeltaTime, 5.0f);
+		SpringArm->SocketOffset = FMath::VInterpTo(SpringArm->SocketOffset, FVector::ZeroVector, DeltaTime, 5.0f);
 	}
 
 	if (bIsSprint && GetVelocity().Size() > 0)
@@ -957,7 +1004,14 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 				}
 			}
 			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, TEXT("Just Guard!!"));
+
+			if (DamageData.DotDamage)
+			{
+				LaunchCharacterNotify(10.0f);
+				return;
+			}
 			LaunchCharacterNotify(500.0f);
+
 			return;
 		}
 		if (GuardEffect)
@@ -978,6 +1032,11 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 			bIsDead = true;
 			Dead();
 			OnLockOnStateChanged.Broadcast(false);
+			return;
+		}
+		if (DamageData.DotDamage)
+		{
+			LaunchCharacterNotify(10.0f);
 			return;
 		}
 		LaunchCharacterNotify(500.0f);
