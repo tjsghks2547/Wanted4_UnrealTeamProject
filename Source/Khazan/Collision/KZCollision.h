@@ -34,7 +34,5 @@ struct FDamageData
 
 	EHitIntensity Intensity = EHitIntensity::None;
 	EAttackSwingDir SwingDir = EAttackSwingDir::None;
-	//EAttackType AttackType;
-	//FVector HitLocation;
 };
 

@@ -28,8 +28,8 @@ AKZBossCharacter::AKZBossCharacter()
 
 	
 	//m_pStatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
-	StatComponent->SetUp_stat_Hp(100, 100);
-	StatComponent->SetUp_stat_Stamina(100, 100);
+	StatComponent->SetUp_stat_Hp(300, 300);
+	StatComponent->SetUp_stat_Stamina(200, 200);
 
 	// AI 회전 및 이동 설정
 	bUseControllerRotationYaw = true;
@@ -304,8 +304,8 @@ void AKZBossCharacter::ExecuteJump()
 	FVector PlayerLoc = TargetActor->GetActorLocation();
 
 	// 1. 값 설정
-	float TimeToArrive = 2.0f; // 목표까지 걸리는 시간 (작을수록 빠르고 강력)
-	float JumpBoost = 2.0f;
+	float TimeToArrive = 1.5f; // 목표까지 걸리는 시간 (작을수록 빠르고 강력)
+	float JumpBoost = 1.5f;
     float Gravity = GetWorld()->GetGravityZ() * -1.0f * JumpBoost; // 중력값 (보통 980)
 
 	// 2. 가로 이동 벡터 계산
@@ -404,7 +404,7 @@ void AKZBossCharacter::ProcessDamage(const FDamageData& DamageData)
 		// 페이즈 1A에서만 체력 60% 이하로 떨어지면 페이즈 전환 시도
 
 		UE_LOG(LogTemp, Warning, TEXT("%d"), StatComponent->GetCurrentHp() / StatComponent->GetMaxHp());
-		if((StatComponent->GetCurrentHp() / StatComponent->GetMaxHp()) <= 0.6f)
+		if ((static_cast<float>(StatComponent->GetCurrentHp()) / StatComponent->GetMaxHp()) <= 0.6f)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("%d"), StatComponent->GetCurrentHp() / StatComponent->GetMaxHp());
 
