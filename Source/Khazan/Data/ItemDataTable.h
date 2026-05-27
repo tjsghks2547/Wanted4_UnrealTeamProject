@@ -34,5 +34,8 @@ public:
 	int32 StackSize = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	int32 HealAmount = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	EItemType ItemType = EItemType::Etc;
 };

@@ -60,14 +60,7 @@ ATreasureBox::ATreasureBox()
 
 
 #pragma region Drop Item 
-	static ConstructorHelpers::FClassFinder<ABottleItem> BottleItemClassRef(
-		TEXT("/Game/Blueprint/Item/Bottle/BP_Bottle.BP_Bottle_C")
-	);
 
-	if (BottleItemClassRef.Class != nullptr)
-	{
-		DropItemClass = BottleItemClassRef.Class;
-	}
 #pragma endregion 
 }
 
@@ -107,6 +100,12 @@ void ATreasureBox::Tick(float DeltaTime)
 						UTreasureBox_AnimInstance* pAnimInstance = Cast<UTreasureBox_AnimInstance>(GetMesh()->GetAnimInstance());
 						pAnimInstance->Set_BoxStatue(true);
 						HasPlayedAnimation = true;
+
+						/* 5월 26일 추가 */
+						pPlayer->Set_Current_OverlapTypes(EInterActionType::None);
+						pPlayer->Render_InterActionUi(EInterActionType::Item, ESlateVisibility::Hidden);
+						/* ---------------------- */
+
 						SpawnDropItem();
 					}
 
@@ -128,7 +127,7 @@ void ATreasureBox::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 void ATreasureBox::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor->ActorHasTag(TEXT("Player")))
+	if (OtherActor->ActorHasTag(TEXT("Player")) && HasPlayedAnimation == false)
 	{
 		AKZCharacterPlayer* pPlayer = Cast<AKZCharacterPlayer>(OtherActor);
 
@@ -142,14 +141,14 @@ void ATreasureBox::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* O
 
 void ATreasureBox::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (OtherActor->ActorHasTag(TEXT("Player")))
+	if (OtherActor->ActorHasTag(TEXT("Player")) && HasPlayedAnimation == false)
 	{
 		AKZCharacterPlayer* pPlayer = Cast<AKZCharacterPlayer>(OtherActor);
 
 		if (pPlayer != NULL)
 		{
 
-			pPlayer->Render_InterActionUi(EInterActionType::Item, ESlateVisibility::Collapsed);
+			pPlayer->Render_InterActionUi(EInterActionType::Item, ESlateVisibility::Hidden);
 			pPlayer->Set_Current_OverlapTypes(EInterActionType::None);
 			pPlayer->Ui_Key_State_Reset();
 			HasPlayedAnimation = false;
@@ -170,25 +169,29 @@ void ATreasureBox::SpawnDropItem()
 	SpawnParams.Owner = this;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	AActor* SpawnedItem = World->SpawnActor<AActor>(
-		DropItemClass,
-		SpawnLocation,
-		SpawnRotation,
-		SpawnParams
-	);
-
-	UPrimitiveComponent* ItemRootComp = Cast<UPrimitiveComponent>(SpawnedItem->GetRootComponent());
-	UPrimitiveComponent* BoxRootComp = Cast<UPrimitiveComponent>(GetRootComponent());
-
-	if (ItemRootComp && BoxRootComp)
+	for (auto& iter : DropItemClassArray)
 	{
-		ItemRootComp->IgnoreActorWhenMoving(this, true);
-		BoxRootComp->IgnoreActorWhenMoving(SpawnedItem, true);
+		AActor* SpawnedItem = World->SpawnActor<AActor>(
+			iter,
+			SpawnLocation,
+			SpawnRotation,
+			SpawnParams
+		);
+
+
+		UPrimitiveComponent* ItemRootComp = Cast<UPrimitiveComponent>(SpawnedItem->GetRootComponent());
+		UPrimitiveComponent* BoxRootComp = Cast<UPrimitiveComponent>(GetRootComponent());
+
+		if (ItemRootComp && BoxRootComp)
+		{
+			ItemRootComp->IgnoreActorWhenMoving(this, true);
+			BoxRootComp->IgnoreActorWhenMoving(SpawnedItem, true);
+		}
+
+
+		ABottleItem* pBottle = Cast<ABottleItem>(SpawnedItem);
+		pBottle->StartDropMotion(GetActorForwardVector());
 	}
-
-
-	ABottleItem* pBottle = Cast<ABottleItem>(SpawnedItem);
-	pBottle->StartDropMotion(GetActorForwardVector());
 
 }
 
