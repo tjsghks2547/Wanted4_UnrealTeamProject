@@ -5,6 +5,8 @@
 #include "Data/ItemDataTable.h"
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
+#include "Player/IHPlayerState.h"
+#include "Component/InventoryComponent.h"
 
 
 UQuickSlotWidget::UQuickSlotWidget(const FObjectInitializer& ObjectInitializer)
@@ -41,6 +43,24 @@ void UQuickSlotWidget::NativeConstruct()
 	
 	AmountTextBlock = Cast<UTextBlock>(GetWidgetFromName(TEXT("Item_Amount_Text")));
 	ensureAlways(AmountTextBlock);
+
+	ItemRowName = NAME_None;
+}
+
+void UQuickSlotWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	AIHPlayerState* pPlayerState = Cast<AIHPlayerState>(GetOwningPlayerState());
+
+	TMap<FName, int32>& pIventory = pPlayerState->Get_InventoryComponent()->Get_ItemMap();
+
+
+	if (ItemRowName != NAME_None)
+	{
+		AmountTextBlock->SetText(FText::AsNumber(pIventory[ItemRowName]));
+	}
+
 
 }
 

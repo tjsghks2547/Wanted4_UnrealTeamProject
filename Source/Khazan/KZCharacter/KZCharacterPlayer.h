@@ -227,6 +227,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere)	
 	bool HasUiKeyFinished;
+
+
+	UPROPERTY()
+	FDataTableRowHandle ItemData;
 /* ---------------------------------------------------- */
 
 

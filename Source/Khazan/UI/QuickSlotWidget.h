@@ -21,7 +21,7 @@ public:
 
 protected:
 	virtual void NativeConstruct() override;
-
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 public:
 	void Set_Slot(FName _rowName, int32 _iAmount);

@@ -53,7 +53,7 @@ protected:
 	/* Drop Item ฐüทร */
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop")
-	TSubclassOf<AActor> DropItemClass;
+	TArray<TSubclassOf<AActor>> DropItemClassArray;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop")
 	FVector DropSpawnOffset = FVector(0.f, 0.f, 50.f);

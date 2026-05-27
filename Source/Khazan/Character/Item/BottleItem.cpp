@@ -84,29 +84,24 @@ void ABottleItem::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
 			AIHPlayerState* pPlayerState = PlayerPawn->GetPlayerState<AIHPlayerState>();
 			UInventoryComponent* InventoryComponent = pPlayerState->Get_InventoryComponent();
 
+			// 랜덤 아이템 RowName 목록
+			TArray<FName> RandomItemNames;
+			RandomItemNames.Add(TEXT("Bread"));
+			RandomItemNames.Add(TEXT("Buger"));
+			RandomItemNames.Add(TEXT("Ramen"));
 
-			if (InventoryComponent != NULL)
-			{
-				FDataTableRowHandle ItemHandle = ItemComponent->Get_ItemData();
+			// 랜덤 인덱스 선택
+			int32 RandomIndex = FMath::RandRange(0, RandomItemNames.Num() - 1);
 
-				ItemComponent->Set_ItemRowName(TEXT("Bread"));
-				InventoryComponent->Add_Item(ItemHandle.RowName, 1);
-			}
+			FName RandomItemName = RandomItemNames[RandomIndex];
+
+
+			// 아이템 추가
+			InventoryComponent->Add_Item(RandomItemName, 1);
 
 			HasPickUp = true;
 
 			Destroy();
-
-			// 해당 수정 전 ( 의존성 깨트리기 이러면 플레이어를 포함안해도 된다.) 
-			//ACharacter_NaNally* pPlayer = Cast<ACharacter_NaNally>(OtherActor);
-			//
-			//FDataTableRowHandle ItemHandle = ItemComponent->Get_ItemData();
-			//pPlayer->Get_InventoryComponent()->Add_Item(ItemHandle.RowName, 1);
-			//
-			//HasPickUp = true;
-			//
-			//Destroy();
-
 		}
 
 	}
@@ -128,11 +123,18 @@ void ABottleItem::StartDropMotion(const FVector& Direction)
 	if (ProjectileMovement == nullptr)
 		return;
 
-	FVector LaunchDirection = Direction.GetSafeNormal();
+	// XY 평면 랜덤 방향 생성
+	float RandomAngle = FMath::RandRange(0.f, 200.f);
 
-	// 앞으로 나가는 힘 + 위로 뜨는 힘
+	FVector RandomDirection = FVector(
+		FMath::Cos(FMath::DegreesToRadians(RandomAngle)),
+		FMath::Sin(FMath::DegreesToRadians(RandomAngle)),
+		0.f
+	);
+
+	// 앞으로 퍼지는 힘 + 위로 뜨는 힘
 	FVector LaunchVelocity =
-		LaunchDirection * 300.f +
+		RandomDirection * 300.f +
 		FVector(0.f, 0.f, 500.f);
 
 	ProjectileMovement->Velocity = LaunchVelocity;
