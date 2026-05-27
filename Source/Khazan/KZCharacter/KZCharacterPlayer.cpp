@@ -17,6 +17,7 @@
 #include "KZPlayer/KZPlayerController.h"
 #include "HUD/IH_HUD.h"
 #include "Player/IHPlayerState.h"
+#include "Data/ItemDataTable.h"
 
 #pragma endregion 
 #include "GameFramework/CharacterMovementComponent.h"
@@ -192,6 +193,16 @@ AKZCharacterPlayer::AKZCharacterPlayer()
 	{
 		GuardEffect = GuardEffectRef.Object;
 	}
+
+
+	// 5_27 선환 추가 
+	static ConstructorHelpers::FObjectFinder<UDataTable> ItemDataTableRef(TEXT("/Game/Data/DT_Item.DT_Item"));
+
+	if (ItemDataTableRef.Succeeded())
+	{
+		ItemData.DataTable = ItemDataTableRef.Object;
+	}
+
 }
 
 // Called when the game starts or when spawned
@@ -745,10 +756,15 @@ void AKZCharacterPlayer::QuickSlotUse()
 	{
 		if (itemContainer[CureentItemName] >= 1)
 		{
+			FItemDataTable* RowData = ItemData.DataTable->FindRow<FItemDataTable>(
+				CureentItemName,
+				TEXT("Item Data Lookup")
+			);
+
 			itemContainer[CureentItemName] -= 1;
 			pQuickSlotWidget->Change_Amount(itemContainer[CureentItemName]);
 
-			int32 Heal_Hp = StatComponent->GetCurrentHp() + 300;
+			int32 Heal_Hp = StatComponent->GetCurrentHp() + RowData->HealAmount;
 
 			if (Heal_Hp >= StatComponent->GetMaxHp())
 			{
