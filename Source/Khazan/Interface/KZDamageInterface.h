@@ -24,7 +24,7 @@ class KHAZAN_API IKZDamageInterface
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
 	//UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Damage")
-	//virtual void ProcessDamage(const FDamageData& DamageData);
-	//UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Damage")
 	virtual void ProcessDamage(const FDamageData& DamageData) = 0;
+
+	virtual bool IsLastDamageDot() const = 0;
 };

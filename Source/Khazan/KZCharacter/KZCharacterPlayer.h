@@ -186,12 +186,16 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ProcessDamage(const FDamageData& DamageData) override;
 
-protected:
+	virtual bool IsLastDamageDot() const override { return bLastDamageWasDot; }
+
+	protected:
 	void Dead();
 
 	// 죽음 이벤트를 위한 플래그
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = State)
 	bool bIsDead = false;
+
+	bool bLastDamageWasDot = false;
 
 	FString GetAttackerPosString(AActor* Attacker);
 

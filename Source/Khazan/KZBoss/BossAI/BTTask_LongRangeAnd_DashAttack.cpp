@@ -22,7 +22,7 @@ EBTNodeResult::Type UBTTask_LongRangeAnd_DashAttack::ExecuteTask(UBehaviorTreeCo
 		// 공격 중임을 블랙보드에 먼저 저장 (대소문자 일치)
 		OwnerComp.GetBlackboardComponent()->SetValueAsBool(FName("IsAttacking"), true);
 
-		int32 RandomIdx = FMath::RandRange(1, 2);
+		int32 RandomIdx = 2; //FMath::RandRange(1, 2);
 
 		if (RandomIdx != 1)
 		{

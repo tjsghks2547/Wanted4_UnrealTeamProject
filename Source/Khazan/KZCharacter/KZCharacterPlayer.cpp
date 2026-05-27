@@ -964,6 +964,8 @@ void AKZCharacterPlayer::ProcessDamage(const FDamageData& DamageData)
 {
 	if (bIsDead || bIsInvincible) { return; }
 
+	bLastDamageWasDot = DamageData.DotDamage;
+
 	ForceEndAttackState();
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	// 공격하고 있는 대상을 가져옴.

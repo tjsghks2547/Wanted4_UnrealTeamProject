@@ -104,6 +104,8 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void ProcessDamage(const FDamageData& DamageData) override;
 
+	virtual bool IsLastDamageDot() const override { return bLastDamageWasDot; }
+
 	UPROPERTY()
 	TObjectPtr<AAIController> AIC;
 
@@ -117,6 +119,8 @@ protected:
 	// 죽음 이벤트를 위한 플래그
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = State)
 	bool bIsDead = false;
+
+	bool bLastDamageWasDot = false;
 
 	UPROPERTY()
 	bool bDeathAnimationDone = false;

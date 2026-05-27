@@ -7,6 +7,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BTTaskNode.h"
 
+
 UBTTask_Groogy::UBTTask_Groogy()
 {
 	bNotifyTick = true;
@@ -27,6 +28,9 @@ EBTNodeResult::Type UBTTask_Groogy::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 
 	return EBTNodeResult::Failed;
 }
+
+
+// ... 기존 코드 생략 ...
 
 void UBTTask_Groogy::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {

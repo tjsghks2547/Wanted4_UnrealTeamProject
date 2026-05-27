@@ -10,6 +10,8 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "KZCharacter/KZCharacterPlayer.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 UAnimNotifyState_BlackHole::UAnimNotifyState_BlackHole()
 {
@@ -26,6 +28,7 @@ void UAnimNotifyState_BlackHole::NotifyTick(USkeletalMeshComponent* MeshComp, UA
 	if (!Boss) return;
 
 	PullStrength = 230.0f; // 흡입 세기
+	DamageRadius = 400.0f; // 대미지 입힐 범위
 
 	FVector BossLoc = Boss->GetActorLocation();
 	
@@ -105,5 +108,45 @@ void UAnimNotifyState_BlackHole::NotifyEnd(USkeletalMeshComponent* MeshComp, UAn
 	Super::NotifyEnd(MeshComp, Animation);
 
 	// 노티파이 종료 시 맵을 비워주기
+	LastDamageTimeMap.Empty();
+}
+
+void UAnimNotifyState_BlackHole::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference)
+{
+	UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
+		SpiralEffect,
+		MeshComp,
+		SocketName,
+		FVector::ZeroVector,
+		FRotator::ZeroRotator,
+		EAttachLocation::KeepRelativeOffset,
+		true
+	);
+
+	if (NiagaraComp)
+	{
+		// 태그 부여
+		NiagaraComp->ComponentTags.Add(FName("NS_Spiral"));
+	}
+}
+
+void UAnimNotifyState_BlackHole::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
+{
+	Super::NotifyEnd(MeshComp, Animation, EventReference);
+
+	if (MeshComp)
+	{
+		TArray <USceneComponent*>Children;
+		MeshComp->GetChildrenComponents(true, Children);
+		for (USceneComponent* Child : Children)
+		{
+			UNiagaraComponent* NiagaraComp = Cast<UNiagaraComponent>(Child);
+			if (NiagaraComp && NiagaraComp->ComponentTags.Contains(FName("NS_Spiral")))
+			{
+				NiagaraComp->Deactivate();
+			}
+		}
+	}
+
 	LastDamageTimeMap.Empty();
 }

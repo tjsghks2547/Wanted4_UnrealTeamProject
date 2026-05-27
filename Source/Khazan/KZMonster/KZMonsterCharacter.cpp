@@ -114,16 +114,7 @@ void AKZMonsterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 }
-//
-//void AKZMonsterCharacter::OnSeePawn(APawn* SeenPawn)
-//{
-//	// 플레이어 캐릭터인지 확인 (유효하고 플레이어 컨트롤러에 의해 제어되는지 확인)
-//	if (SeenPawn && SeenPawn->IsPlayerControlled())
-//	{
-//		TargetPawn = SeenPawn;
-//		//UE_LOG(LogTemp, Log, TEXT("Monster spotted player: %s"), *SeenPawn->GetName());
-//	}
-//}
+
 
 void AKZMonsterCharacter::PlayAttackMontage()
 {
@@ -199,9 +190,11 @@ void AKZMonsterCharacter::ProcessDamage(const FDamageData& DamageData)
 
 	if (bIsDead) return;
 
+	bLastDamageWasDot = DamageData.DotDamage;
+
 	LastAttacker = DamageData.Attacker;
 
-	FName SectionName = *FString::Printf(TEXT("Normal_UF")); // Todo: 1은 임시 하드 코딩.
+	FName SectionName = *FString::Printf(TEXT("Normal_DB")); // Todo: 1은 임시 하드 코딩.
 
 	if (StatComponent)
 	{
@@ -360,11 +353,33 @@ void AKZMonsterCharacter::PlayGroggyMontage()
 {
 	if (!GroggyMontage) return;
 
+	// 무기 시각화 비활성화 된 경우 활성화 전환.
+	TArray<USkeletalMeshComponent*> SkeletalComponents;
+	GetComponents<USkeletalMeshComponent>(SkeletalComponents);
+
+	for (USkeletalMeshComponent* MeshComp : SkeletalComponents)
+	{
+		if (MeshComp != GetMesh())
+		{
+			if (MeshComp->GetName().Contains(TEXT("Weapon")))
+			{
+				MeshComp->SetHiddenInGame(false);
+				MeshComp->SetVisibility(true);
+			}
+		}
+
+	}
+
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance)
 	{
 		GetCharacterMovement()->StopMovementImmediately();
-
+		
+		if (AIC)
+		{
+			AIC->ClearFocus(EAIFocusPriority::Gameplay);
+		}
+		
 		AnimInstance->Montage_Play(GroggyMontage);
 
 		// 몽타주가 끝났을 때 람다함수 바인딩
@@ -397,6 +412,10 @@ void AKZMonsterCharacter::HitMontageEnd(UAnimMontage* TargetMontage, bool bInter
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	
 	BlackboardComp->SetValueAsBool(FName("IsHit"), false);
+
+	// additive 몽타주인 경우는 IsAttacking을 유지.
+	if (TargetMontage == AdditiveHitMontage) return;
+
 	if (bInterrupted)
 	{
 		// 공격이 피격으로 끊긴 경우, 공격 상태도 false로 변경

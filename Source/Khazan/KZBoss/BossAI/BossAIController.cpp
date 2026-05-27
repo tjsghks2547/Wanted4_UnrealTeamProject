@@ -26,7 +26,7 @@ ABossAIController::ABossAIController()
 	SightConfig->SightRadius = MySightRadius; // 감지 범위: 보스 2300.0f;
 	SightConfig->LoseSightRadius = MyLoseSightRadius; // 감지 해제 범위: 보스 2500.0f;
 	SightConfig->PeripheralVisionAngleDegrees = MyAngleDegrees;  // 시야각(양옆 45도 씩 총 360도): 보스 180.0f;
-	SightConfig->SetMaxAge(0.0f); // 타겟을 놓친 후 기억하는 시간
+	SightConfig->SetMaxAge(2.0f); // 타겟을 놓친 후 기억하는 시간
 
 	// 감지 대상 설정 (기본적으로 모두 감지하도록 설정)
 	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
@@ -60,10 +60,19 @@ void ABossAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Sti
 			}
 
 			/* 5_26 선환 추가 */
-			AKZPlayerController* pKZPlayerController = Cast<AKZPlayerController>(GetWorld()->GetFirstPlayerController());
-			AIH_HUD* pIH_HUD = pKZPlayerController->Get_HUD();
-
-			pIH_HUD->Get_MainUI_Widget()->RenderBossUi(ESlateVisibility::Visible);
+			if (Cast<AKZBossCharacter>(GetPawn()))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("캐스팅 성공!!"));
+				AKZPlayerController* pKZPlayerController = Cast<AKZPlayerController>(GetWorld()->GetFirstPlayerController());
+				if (pKZPlayerController)
+				{
+					AIH_HUD* pIH_HUD = pKZPlayerController->Get_HUD();
+					if (pIH_HUD && pIH_HUD->Get_MainUI_Widget())
+					{
+						pIH_HUD->Get_MainUI_Widget()->RenderBossUi(ESlateVisibility::Visible);
+					}
+				}
+			}
 
 		}
 		// 플레이어가 감지 범위를 완전히 벗어났을 때 (SightRadius 설정 범위 초과)
@@ -75,6 +84,7 @@ void ABossAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Sti
 			// 5_26 경우 추가: 아래 if문들
 			if (Cast<AKZBossCharacter>(GetPawn()))
 			{
+				UE_LOG(LogTemp, Warning, TEXT("캐스팅 성공"));
 				/* 5_26 선환 추가 */
 				AKZPlayerController* pKZPlayerController = Cast<AKZPlayerController>(GetWorld()->GetFirstPlayerController());
 				if (pKZPlayerController)
@@ -113,6 +123,9 @@ void ABossAIController::OnPossess(APawn* InPawn)
 
 			if (BlackboardComp)
 			{
+				// 페이즈 변화를 아직 하지 않았다는 변수로 초기화
+				BlackboardComp->SetValueAsBool(FName("IsPhaseChanging"), false);
+				
 				// 블랙보드 거리 변수 초기화 (처음 0으로 시작하여 공격하고 시작함을 방지)
 				BlackboardComp->SetValueAsFloat(FName("Distance"), 9999.0f);
 
