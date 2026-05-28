@@ -23,13 +23,14 @@ void UAnimNotifyState_BlackHole::NotifyTick(USkeletalMeshComponent* MeshComp, UA
 {
 	Super::NotifyTick(MeshComp, Animation, FrameDeltaTime);
 
-	AActor* Boss = MeshComp->GetOwner();
 
+	AActor* Boss = MeshComp->GetOwner();
 	if (!Boss) return;
 
-	PullStrength = 230.0f; // 흡입 세기
+	PullStrength = 235.0f; // 흡입 세기
 	DamageRadius = 400.0f; // 대미지 입힐 범위
 
+	// 보스 위치
 	FVector BossLoc = Boss->GetActorLocation();
 	
 	// 범위 내 플레이어 검출
@@ -62,6 +63,7 @@ void UAnimNotifyState_BlackHole::NotifyTick(USkeletalMeshComponent* MeshComp, UA
 			// 플레이어가 반대로 달릴 경우 => Input Speed - Pull Force가 되어 느려짐
 			// 가만히 있을 경우 => 0 + PullStrength되어 보스 방향으로 끌려감
 			Player->GetCharacterMovement()->Velocity += PullForce * FrameDeltaTime * 10.0f;
+			
 
 			Player->GetCharacterMovement()->GroundFriction = 0.8f;
 			//if (ToBossDist > StopDistance)
@@ -82,12 +84,14 @@ void UAnimNotifyState_BlackHole::NotifyTick(USkeletalMeshComponent* MeshComp, UA
 				float* LastDamageTimePtr = LastDamageTimeMap.Find(Player);
 				float LastDamageTime = LastDamageTimePtr ? *LastDamageTimePtr : -1.0f;
 
+				// 현재시간 - 마지막에 대미지 입은 시간이 대미지 입히는 시간 간격(변수로 설정)을 넘어갔을 경우
 				if (CurrentWorldTime - LastDamageTime >= DamageInterval)
 				{
 					// 대미지 데이터 생성
 					FDamageData VacuumDamage;
-					VacuumDamage.DamageAmount = 10.0f; // 대미지 양
+					VacuumDamage.DamageAmount = 3.0f; // 대미지 양
 					VacuumDamage.Attacker = Boss;
+					VacuumDamage.DotDamage = true;
 
 					// 대미지 처리
 					if (AKZCharacterPlayer* TargetPlayer = Cast<AKZCharacterPlayer>(Player))

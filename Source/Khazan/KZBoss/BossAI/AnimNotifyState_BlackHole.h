@@ -41,11 +41,11 @@ protected:
 
 private:
 
-	float PullRadius = 1700.0f; // 흡입 범위
+	float PullRadius = 1500.0f; // 흡입 범위
 	float PullStrength = 500.0f; // 흡입 세기
 	float StopDistance = 160.0f; // 끼임 방지용 흡입 중단 거리
 	float DamageRadius = 400.0f; // 대미지 입힐 범위
-	float DamageInterval = 0.2f; // 0.5초마다 대미지
+	float DamageInterval = 0.5f; // 0.5초마다 대미지
 
 	// LastDamageTime을 저장하기 위한 map 선언
 	TMap<AActor*, float> LastDamageTimeMap;

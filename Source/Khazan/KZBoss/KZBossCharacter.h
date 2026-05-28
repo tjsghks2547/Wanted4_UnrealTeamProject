@@ -39,7 +39,7 @@ public:
 	
 	// 원거리 공격 실행 함수 (몽타주 재생)
 	UFUNCTION(BlueprintCallable, Category = "Combat LongRange")
-	void PlayJumpAttackMontage();
+	void PlayJumpAttackMontage(); 
 
 	UFUNCTION(BlueprintCallable, Category = "Combat LongRange")
 	virtual void PlayLongRangeAttackMontage() override;

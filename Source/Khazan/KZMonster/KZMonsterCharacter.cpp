@@ -357,6 +357,7 @@ void AKZMonsterCharacter::PlayGroggyMontage()
 	TArray<USkeletalMeshComponent*> SkeletalComponents;
 	GetComponents<USkeletalMeshComponent>(SkeletalComponents);
 
+	// 무기 시각화(창 회수 전 그로기에 걸린 경우를 위함)
 	for (USkeletalMeshComponent* MeshComp : SkeletalComponents)
 	{
 		if (MeshComp != GetMesh())
@@ -377,6 +378,7 @@ void AKZMonsterCharacter::PlayGroggyMontage()
 		
 		if (AIC)
 		{
+			// 그로기 상태에서 캐릭터를 바라보는 상황 방지
 			AIC->ClearFocus(EAIFocusPriority::Gameplay);
 		}
 		

@@ -32,7 +32,7 @@ EBTNodeResult::Type UBTTask_PhaseChange::ExecuteTask(UBehaviorTreeComponent& Own
 		// 페이즈에 맞는 몽타주 실행
 		UE_LOG(LogTemp, Error, TEXT("%d"), (int32)Boss->CurrentPhase);
 		
-		if (BossPhase == EBossPhase::Phase1A && bIsChanging)
+		if (BossPhase == EBossPhase::Phase1A && bIsChanging == true)
 		{	
 			// 공격 중임을 블랙보드에 먼저 저장 (대소문자 일치)
 			OwnerComp.GetBlackboardComponent()->SetValueAsBool(FName("IsAttacking"), true);
