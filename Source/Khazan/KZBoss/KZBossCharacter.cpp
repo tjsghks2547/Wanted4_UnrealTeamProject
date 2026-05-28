@@ -404,7 +404,8 @@ void AKZBossCharacter::ProcessDamage(const FDamageData& DamageData)
 		// 페이즈 1A에서만 체력 60% 이하로 떨어지면 페이즈 전환 시도
 
 		UE_LOG(LogTemp, Warning, TEXT("%d"), StatComponent->GetCurrentHp() / StatComponent->GetMaxHp());
-		if((StatComponent->GetCurrentHp() / StatComponent->GetMaxHp()) <= 0.6f)
+		// 둘 중 하나만 float로 형변환해도 나눗셈 전체가 float 연산으로 수행
+		if(static_cast<float>(StatComponent->GetCurrentHp()) / StatComponent->GetMaxHp() <= 0.6f)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("%d"), StatComponent->GetCurrentHp() / StatComponent->GetMaxHp());
 
