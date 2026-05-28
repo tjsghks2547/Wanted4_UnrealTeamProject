@@ -398,16 +398,12 @@ void AKZBossCharacter::ProcessDamage(const FDamageData& DamageData)
 
 	
 	bool bIsChanging = BlackboardComp->GetValueAsBool(FName("IsPhaseChanging"));
-	if (bIsChanging == false && CurrentPhase == EBossPhase::Phase1A)
+	if (!bIsChanging && CurrentPhase == EBossPhase::Phase1A)
 	{
 		//(CurrentHP / MaxHP <= 0.6f)
 		// 페이즈 1A에서만 체력 60% 이하로 떨어지면 페이즈 전환 시도
-
-		UE_LOG(LogTemp, Warning, TEXT("%d"), StatComponent->GetCurrentHp() / StatComponent->GetMaxHp());
 		if((StatComponent->GetCurrentHp() / StatComponent->GetMaxHp()) <= 0.6f)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("%d"), StatComponent->GetCurrentHp() / StatComponent->GetMaxHp());
-
 			BlackboardComp->SetValueAsBool(FName("IsPhaseChanging"), true);
 			//this->PlayPhaseChangingAttackMontage();
 			 // 애니메이션이 끝나면 ChangePhase()가 호출되어 페이즈 전환 및 블랙보드 업데이트가 이루어짐

@@ -28,8 +28,8 @@ AKZBossCharacter::AKZBossCharacter()
 
 	
 	//m_pStatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
-	StatComponent->SetUp_stat_Hp(100, 100);
-	StatComponent->SetUp_stat_Stamina(100, 100);
+	StatComponent->SetUp_stat_Hp(450, 450);
+	StatComponent->SetUp_stat_Stamina(250, 250);
 
 	// AI 회전 및 이동 설정
 	bUseControllerRotationYaw = true;
@@ -82,10 +82,12 @@ void AKZBossCharacter::Tick(float DeltaTime)
 			FVector BossLoc = GetActorLocation();
 			FVector PlayerLoc = Target->GetActorLocation();
 
+			// Z축 제외한 거리 측정
 			float Distance2D = FVector::Dist2D(FVector(BossLoc.X, BossLoc.Y, 0), FVector(PlayerLoc.X,PlayerLoc.Y, 0));
 			float VerticalVel = GetCharacterMovement()->Velocity.Z;
 			// 보스가 내려가기 시작했고, 플레이어 머리 위에 도달했을 때
 
+			// 방향 벡터
 			FVector DirToPlayer = (PlayerLoc - BossLoc).GetSafeNormal();
 			DirToPlayer.Z = 0;
 	
@@ -403,35 +405,13 @@ void AKZBossCharacter::ProcessDamage(const FDamageData& DamageData)
 		//(CurrentHP / MaxHP <= 0.6f)
 		// 페이즈 1A에서만 체력 60% 이하로 떨어지면 페이즈 전환 시도
 
-		UE_LOG(LogTemp, Warning, TEXT("%d"), StatComponent->GetCurrentHp() / StatComponent->GetMaxHp());
 		// 둘 중 하나만 float로 형변환해도 나눗셈 전체가 float 연산으로 수행
 		if(static_cast<float>(StatComponent->GetCurrentHp()) / StatComponent->GetMaxHp() <= 0.6f)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("%d"), StatComponent->GetCurrentHp() / StatComponent->GetMaxHp());
-
 			BlackboardComp->SetValueAsBool(FName("IsPhaseChanging"), true);
 			//this->PlayPhaseChangingAttackMontage();
 			 // 애니메이션이 끝나면 ChangePhase()가 호출되어 페이즈 전환 및 블랙보드 업데이트가 이루어짐
 		}
 	}
-
-	// Todo: 점심 이후 진행(피격모션으로 인한 공격모션 끊김 문제: 피격쉐이크 애니메이션 애셋 설정에서 
-	// // idle넣었는데 평소처럼 보스가 서있거나 전체 동작이 다보임)
-	//bool bIsAttacking = BlackboardComp->GetValueAsBool(FName("IsAttacking"));
-	//
-	//if (bIsAttacking)
-	//{
-	//	if (AdditiveHitMontage)
-	//	{
-	//		PlayAnimMontage(AdditiveHitMontage);
-	//	}
-	//}
-	//else
-	//{
-	//	if (HitMontage)
-	//	{
-	//		PlayAnimMontage(HitMontage);
-	//	}
-	//}
 }
 

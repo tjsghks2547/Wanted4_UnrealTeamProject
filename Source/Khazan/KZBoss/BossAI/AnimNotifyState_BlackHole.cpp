@@ -27,7 +27,7 @@ void UAnimNotifyState_BlackHole::NotifyTick(USkeletalMeshComponent* MeshComp, UA
 	AActor* Boss = MeshComp->GetOwner();
 	if (!Boss) return;
 
-	PullStrength = 240.0f; // 흡입 세기
+	PullStrength = 235.0f; // 흡입 세기
 	DamageRadius = 400.0f; // 대미지 입힐 범위
 
 	// 보스 위치
@@ -89,7 +89,7 @@ void UAnimNotifyState_BlackHole::NotifyTick(USkeletalMeshComponent* MeshComp, UA
 				{
 					// 대미지 데이터 생성
 					FDamageData VacuumDamage;
-					VacuumDamage.DamageAmount = 10.0f; // 대미지 양
+					VacuumDamage.DamageAmount = 3.0f; // 대미지 양
 					VacuumDamage.Attacker = Boss;
 					VacuumDamage.DotDamage = true;
 
